@@ -233,14 +233,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let percentage = Math.round((data.usedBytes / data.maxBytes) * 100);
             if (percentage > 100) percentage = 100;
             
-            const storageText = document.querySelector('.storage-info p');
-            const percentageText = document.querySelector('.percentage');
-            const circlePath = document.querySelector('.circular-chart .circle');
+            const storageText = document.getElementById('storage-text');
+            const waveWrapper = document.querySelector('.water-wrapper');
             
-            if (storageText) storageText.textContent = `Used ${usedStr} / ${maxGB} GB Total`;
-            if (percentageText) percentageText.textContent = `${percentage}%`;
-            if (circlePath) circlePath.setAttribute('stroke-dasharray', `${percentage}, 100`);
-            
+            if (storageText) {
+                storageText.textContent = `Used ${usedStr} / ${maxGB} GB Total (${percentage}%)`;
+            }
+            if (waveWrapper) {
+                waveWrapper.style.height = `${percentage}%`;
+            }
         } catch (err) {
             console.error('Failed to update storage stats', err);
         }
