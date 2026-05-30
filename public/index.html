@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#09090b">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-overlay">
+        <div class="login-box">
+            <div class="login-header">
+                <i class="ph ph-cloud-lock"></i>
+                <h2>OwnCloud</h2>
+                <p>Enter your credentials to access your secure storage.</p>
+            </div>
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="Username" required autocomplete="username" style="margin-bottom: 0.75rem;">
+                <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+                <button type="submit" class="btn primary-btn" style="width:100%; margin-top: 1rem; padding: 0.75rem;">Login</button>
+            </form>
+            <div id="login-error" style="color: var(--danger-color); font-size: 0.875rem; text-align: center; margin-top: 1rem; display: none;"></div>
+        </div>
+    </div>
+
+    <aside class="sidebar hidden" id="sidebar">
+        <div class="sidebar-logo">
+            <i class="ph ph-cloud"></i>
+            <h2>Storage</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" id="sidebar-cloud-btn" class="active"><i class="ph ph-cloud"></i> My Cloud</a>
+            <a href="#" id="sidebar-users-btn" class="admin-only hidden"><i class="ph ph-users-three"></i> Users</a>
+            <a href="#" id="sidebar-theme-toggle" style="margin-top: auto;"><i class="ph ph-moon"></i> Theme</a>
+        </nav>
+    </aside>
+
+    <div class="app-wrapper hidden" id="app-wrapper">
+        <!-- Header -->
+        <header class="app-header">
+            <button class="menu-btn icon-btn"><i class="ph ph-list"></i></button>
+            <h1 class="header-title" id="current-path-display">Storage</h1>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="icon-btn action-btn" id="header-theme-toggle" aria-label="Toggle Theme">
+                    <i class="ph ph-moon"></i>
+                </button>
+                <div class="avatar" id="header-logout-btn" style="cursor: pointer;" title="Logout">
+                    <img src="https://i.pravatar.cc/100?img=33" alt="Profile">
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Scroll Area -->
+        <main class="main-content">
+            <!-- Cloud Section -->
+            <div id="cloud-section">
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search in Storage" autocomplete="off">
+                </div>
+
+                <!-- Storage Widget -->
+                <div class="section-header">
+                    <h2>Storage</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i class="ph ph-upload-simple"></i></button>
+                        <button class="icon-btn action-btn" id="new-folder-btn" aria-label="New folder"><i class="ph ph-folder-plus"></i></button>
+                    </div>
+                </div>
+                
+                <div class="storage-widget">
+                    <div class="storage-ring-container">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg"
+                              d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <path class="circle"
+                              stroke-dasharray="82, 100"
+                              d="M18 2.0845
+                                a 15.9155 15.9155 0 0 1 0 31.831
+                                a 15.9155 15.9155 0 0 1 0 -31.831"
+                            />
+                            <text x="18" y="20.35" class="percentage">82%</text>
+                        </svg>
+                    </div>
+                    <div class="storage-info">
+                        <h3>Storage</h3>
+                        <p>Used 8.2 GB / 10 GB Total</p>
+                    </div>
+                </div>
+
+                <!-- Files Grid -->
+                <div class="section-header">
+                    <h2>Last Used</h2>
+                    <button class="icon-btn action-btn hidden" id="back-btn"><i class="ph ph-caret-left"></i> Back</button>
+                </div>
+                
+                <div class="file-grid" id="file-grid">
+                    <!-- Files injected here -->
+                    <div class="loading-state">
+                        <i class="ph ph-spinner ph-spin icon-spin"></i>
+                        <p>Loading files...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div id="users-section" class="hidden">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <button class="btn primary-btn" id="create-user-modal-btn" style="display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); padding: 0.5rem 1.25rem;">
+                        <i class="ph ph-user-plus" style="font-size: 1.1rem;"></i>
+                        <span>Create Account</span>
+                    </button>
+                </div>
+
+                <div class="users-grid" id="users-grid">
+                    <!-- Users injected here dynamically -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav hidden" id="bottom-nav">
+        <a href="#" id="bottom-cloud-btn" class="active">
+            <i class="ph ph-cloud"></i>
+            <span>My Cloud</span>
+        </a>
+        <a href="#" id="bottom-users-btn" class="admin-only hidden">
+            <i class="ph ph-users-three"></i>
+            <span>Users</span>
+        </a>
+    </nav>
+
+    <!-- Bottom Sheet / Action Menu -->
+    <div id="bottom-sheet-overlay" class="bottom-sheet-overlay hidden">
+        <div class="bottom-sheet" id="bottom-sheet">
+            <div class="sheet-header">
+                <i class="ph ph-folder item-icon folder-icon"></i>
+                <h3 id="sheet-item-name">Graphic Design</h3>
+            </div>
+            <div class="sheet-actions">
+                <button class="sheet-btn" id="sheet-download-btn"><i class="ph ph-download-simple"></i> Download</button>
+                <button class="sheet-btn"><i class="ph ph-link"></i> Copy a Shareable Link</button>
+                <button class="sheet-btn" id="sheet-rename-btn"><i class="ph ph-pencil-simple"></i> Rename</button>
+                <button class="sheet-btn danger" id="sheet-delete-btn"><i class="ph ph-trash"></i> Delete</button>
+                <button class="sheet-btn"><i class="ph ph-info"></i> View Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Inputs/Modals -->
+    <input type="file" id="file-input" multiple hidden>
+
+    <!-- Generic Modal Template (used for Rename/New Folder) -->
+    <div id="generic-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h2 id="modal-title">Action</h2>
+            <input type="text" id="modal-input" autocomplete="off">
+            <div class="modal-actions">
+                <button class="btn secondary-btn" id="modal-cancel-btn">Cancel</button>
+                <button class="btn primary-btn" id="modal-confirm-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div id="create-user-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h2>Create New Account</h2>
+            <form id="create-user-form" style="margin-top: 1rem;">
+                <label for="create-username" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Username</label>
+                <input type="text" id="create-username" placeholder="Username (min 3 chars)" required autocomplete="off" style="margin-bottom: 1rem;">
+                
+                <label for="create-password" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Password</label>
+                <input type="password" id="create-password" placeholder="Password" required autocomplete="off" style="margin-bottom: 1.5rem;">
+                
+                <div id="create-user-error" style="color: var(--danger-color); font-size: 0.875rem; margin-bottom: 1rem; display: none;"></div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn secondary-btn" id="create-user-cancel-btn">Cancel</button>
+                    <button type="submit" class="btn primary-btn">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="upload-toast" class="toast hidden">
+        <i class="ph ph-spinner ph-spin icon-spin"></i>
+        <span id="upload-toast-text">Uploading...</span>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="modal-overlay hidden" style="z-index: 2000; flex-direction: column;">
+        <div class="preview-header">
+            <button id="close-preview-btn" class="preview-action-btn" aria-label="Close preview">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <span id="preview-filename" style="color: white; flex-grow: 1; text-align: center; font-weight: 500; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1rem;"></span>
+            <button id="download-preview-btn" class="preview-action-btn" aria-label="Download">
+                <i class="ph ph-download-simple"></i>
+            </button>
+        </div>
+        <div id="preview-content-wrapper" class="preview-wrapper"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    console.log('ServiceWorker registered:', reg.scope);
+                }).catch((err) => {
+                    console.log('ServiceWorker registration failed:', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
