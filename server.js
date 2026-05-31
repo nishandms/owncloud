@@ -208,6 +208,60 @@ app.post('/api/folder', authenticateToken, (req, res) => {
   });
 });
 
+// API: Create file
+app.post('/api/file', authenticateToken, (req, res) => {
+  const targetPath = req.body.path || '';
+  const fileName = req.body.name;
+  
+  if (!fileName) {
+    return res.status(400).json({ error: 'File name is required' });
+  }
+
+  const userFolder = getUserStorageFolder(req.user.user);
+  const fullPath = path.join(userFolder, targetPath, fileName);
+
+  // Prevent directory traversal
+  if (!fullPath.startsWith(userFolder)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  if (fs.existsSync(fullPath)) {
+    return res.status(400).json({ error: 'File already exists' });
+  }
+
+  fs.writeFile(fullPath, '', (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to create file' });
+    res.json({ message: 'File created successfully' });
+  });
+});
+
+// API: Update file content
+app.put('/api/file', authenticateToken, (req, res) => {
+  const targetPath = req.body.path;
+  const content = req.body.content || '';
+  
+  if (!targetPath) {
+    return res.status(400).json({ error: 'File path is required' });
+  }
+
+  const userFolder = getUserStorageFolder(req.user.user);
+  const fullPath = path.join(userFolder, targetPath);
+
+  // Prevent directory traversal
+  if (!fullPath.startsWith(userFolder)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+
+  fs.writeFile(fullPath, content, (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to save file' });
+    res.json({ message: 'File saved successfully' });
+  });
+});
+
 // API: Delete file or folder
 app.delete('/api/delete', authenticateToken, (req, res) => {
   const targetPath = req.query.path;
@@ -314,7 +368,11 @@ app.get('/api/download', authenticateToken, (req, res) => {
     return res.status(404).json({ error: 'File not found' });
   }
 
-  res.sendFile(fullPath);
+  if (req.query.download === 'true') {
+    res.download(fullPath);
+  } else {
+    res.sendFile(fullPath);
+  }
 });
 
 // Helper: Get directory size recursively

@@ -76,6 +76,7 @@
                     <h2>Storage</h2>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i class="ph ph-upload-simple"></i></button>
+                        <button class="icon-btn action-btn" id="new-file-btn" aria-label="New file"><i class="ph ph-file-plus"></i></button>
                         <button class="icon-btn action-btn" id="new-folder-btn" aria-label="New folder"><i class="ph ph-folder-plus"></i></button>
                     </div>
                 </div>
@@ -203,6 +204,43 @@
     <div id="upload-toast" class="toast hidden">
         <i class="ph ph-spinner ph-spin icon-spin"></i>
         <span id="upload-toast-text">Uploading...</span>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h2 id="confirm-modal-title">Confirm</h2>
+            <p id="confirm-modal-message" style="margin-top: 1rem; color: var(--text-secondary); line-height: 1.5;"></p>
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+                <button class="btn secondary-btn" id="confirm-modal-cancel-btn">Cancel</button>
+                <button class="btn primary-btn" id="confirm-modal-confirm-btn" style="background: var(--danger-color); border-color: var(--danger-color); color: white;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="modal-overlay hidden" style="z-index: 2500;">
+        <div class="modal">
+            <h2 id="alert-modal-title">Alert</h2>
+            <p id="alert-modal-message" style="margin-top: 1rem; color: var(--text-secondary); line-height: 1.5;"></p>
+            <div class="modal-actions" style="margin-top: 1.5rem; justify-content: center;">
+                <button class="btn primary-btn" id="alert-modal-ok-btn" style="width: 100%;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Modal -->
+    <div id="editor-modal" class="modal-overlay hidden" style="z-index: 2000;">
+        <div class="modal" style="width: 800px; max-width: 95vw; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="editor-filename" style="font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></h2>
+            </div>
+            <textarea id="editor-textarea" style="flex-grow: 1; height: 60vh; margin: 1rem 0; padding: 1rem; background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: 'Inter', monospace; resize: vertical; line-height: 1.5; font-size: 0.9rem;" spellcheck="false"></textarea>
+            <div class="modal-actions">
+                <button class="btn secondary-btn" id="editor-cancel-btn">Cancel</button>
+                <button class="btn primary-btn" id="editor-save-btn">Save</button>
+            </div>
+        </div>
     </div>
 
     <!-- Preview Modal -->

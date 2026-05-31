@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Actions
     const newFolderBtn = document.getElementById('new-folder-btn');
+    const newFileBtn = document.getElementById('new-file-btn');
     const uploadBtn = document.getElementById('upload-btn');
     const fileInput = document.getElementById('file-input');
     
@@ -283,10 +284,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error('Failed to create folder');
                 fetchFiles();
             } catch (err) {
-                alert(err.message);
+                openAlertModal("Error", err.message);
             }
         });
     });
+
+    // New File
+    if (newFileBtn) {
+        newFileBtn.addEventListener('click', () => {
+            openModal('New File', 'newfile.txt', async (name) => {
+                if (!name) return;
+                try {
+                    const res = await apiFetch(`${API_BASE}/file`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: currentPath, name })
+                    });
+                    if (!res.ok) throw new Error('Failed to create file');
+                    fetchFiles();
+                } catch (err) {
+                    openAlertModal("Error", err.message);
+                }
+            });
+        });
+    }
 
     // Upload
     uploadBtn.addEventListener('click', () => fileInput.click());
@@ -328,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error('Failed to rename');
                 fetchFiles();
             } catch (err) {
-                alert(err.message);
+                openAlertModal("Error", err.message);
             }
         });
     });
@@ -337,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!sheetTargetFile) return;
         const name = sheetTargetFile.name;
         closeBottomSheet();
-        if (confirm(`Delete ${name}?`)) {
+        openConfirmModal('Delete File', `Are you sure you want to delete "${name}"?`, async () => {
             try {
                 const filePath = currentPath ? `${currentPath}/${name}` : name;
                 const res = await apiFetch(`${API_BASE}/delete?path=${encodeURIComponent(filePath)}`, {
@@ -346,9 +367,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error('Failed to delete');
                 fetchFiles();
             } catch (err) {
-                alert(err.message);
+                openAlertModal("Error", err.message);
             }
-        }
+        });
     });
 
     // End Functions
@@ -504,6 +525,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { once: true });
     }
 
+    // Confirm Modal
+    const confirmModalEl = document.getElementById('confirm-modal');
+    const confirmModalTitle = document.getElementById('confirm-modal-title');
+    const confirmModalMessage = document.getElementById('confirm-modal-message');
+    const confirmModalCancelBtn = document.getElementById('confirm-modal-cancel-btn');
+    const confirmModalConfirmBtn = document.getElementById('confirm-modal-confirm-btn');
+
+    function openConfirmModal(title, message, onConfirm) {
+        if (!confirmModalEl) return;
+        confirmModalTitle.textContent = title;
+        confirmModalMessage.textContent = message;
+        confirmModalEl.classList.remove('hidden');
+
+        const handleConfirm = () => {
+            confirmModalEl.classList.add('hidden');
+            cleanup();
+            onConfirm();
+        };
+
+        const handleCancel = () => {
+            confirmModalEl.classList.add('hidden');
+            cleanup();
+        };
+
+        const cleanup = () => {
+            confirmModalConfirmBtn.removeEventListener('click', handleConfirm);
+            confirmModalCancelBtn.removeEventListener('click', handleCancel);
+        };
+
+        confirmModalConfirmBtn.addEventListener('click', handleConfirm);
+        confirmModalCancelBtn.addEventListener('click', handleCancel);
+    }
+
+    // Alert Modal
+    const alertModalEl = document.getElementById('alert-modal');
+    const alertModalTitle = document.getElementById('alert-modal-title');
+    const alertModalMessage = document.getElementById('alert-modal-message');
+    const alertModalOkBtn = document.getElementById('alert-modal-ok-btn');
+
+    function openAlertModal(title, message) {
+        if (!alertModalEl) return;
+        alertModalTitle.textContent = title;
+        alertModalMessage.textContent = message;
+        alertModalEl.classList.remove('hidden');
+
+        const handleOk = () => {
+            alertModalEl.classList.add('hidden');
+            alertModalOkBtn.removeEventListener('click', handleOk);
+        };
+
+        alertModalOkBtn.addEventListener('click', handleOk);
+    }
+
     async function handleFileUpload(e) {
         const files = e.target.files;
         if (!files.length) return;
@@ -526,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchFiles();
         } catch (err) {
             console.error(err);
-            alert('Failed to upload files');
+            openAlertModal("Error", 'Failed to upload files');
         } finally {
             toast.classList.add('hidden');
             fileInput.value = '';
@@ -540,6 +614,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>Loading files...</p>
             </div>
         `;
+    }
+
+    // Editor Modal
+    const editorModal = document.getElementById('editor-modal');
+    const editorTextarea = document.getElementById('editor-textarea');
+    const editorFilename = document.getElementById('editor-filename');
+    const editorSaveBtn = document.getElementById('editor-save-btn');
+    const editorCancelBtn = document.getElementById('editor-cancel-btn');
+
+    async function openTextEditor(filename, url) {
+        try {
+            const res = await apiFetch(url);
+            if (!res.ok) throw new Error('Failed to load file content');
+            const text = await res.text();
+            
+            editorFilename.textContent = filename;
+            editorTextarea.value = text;
+            editorModal.classList.remove('hidden');
+
+            const handleSave = async () => {
+                const newContent = editorTextarea.value;
+                const filePath = currentPath ? `${currentPath}/${filename}` : filename;
+                try {
+                    const saveRes = await apiFetch(`${API_BASE}/file`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: filePath, content: newContent })
+                    });
+                    if (!saveRes.ok) throw new Error('Failed to save file');
+                    editorModal.classList.add('hidden');
+                    cleanup();
+                    fetchFiles();
+                } catch (err) {
+                    openAlertModal('Error', err.message);
+                }
+            };
+
+            const handleCancel = () => {
+                editorModal.classList.add('hidden');
+                cleanup();
+            };
+
+            const cleanup = () => {
+                editorSaveBtn.removeEventListener('click', handleSave);
+                editorCancelBtn.removeEventListener('click', handleCancel);
+            };
+
+            editorSaveBtn.addEventListener('click', handleSave);
+            editorCancelBtn.addEventListener('click', handleCancel);
+
+        } catch (err) {
+            openAlertModal('Error', err.message);
+        }
     }
 
     function previewFile(filename) {
@@ -572,8 +699,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
             previewContentWrapper.innerHTML = `<audio src="${fileUrl}" class="preview-media" controls autoplay></audio>`;
             previewModal.classList.remove('hidden');
+        } else if (['txt', 'md', 'csv', 'json', 'js', 'html', 'css'].includes(ext)) {
+            openTextEditor(filename, fileUrl);
         } else {
-            window.open(fileUrl, '_blank');
+            const a = document.createElement('a');
+            a.href = `${API_BASE}/download?path=${encodeURIComponent(filePath)}&download=true&token=${authToken}`;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     }
 
@@ -686,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     deleteBtn.addEventListener('click', async (e) => {
                         e.stopPropagation();
                         const username = deleteBtn.getAttribute('data-username');
-                        if (confirm(`Are you sure you want to delete account "${username}"?`)) {
+                        openConfirmModal('Delete Account', `Are you sure you want to delete account "${username}"?`, async () => {
                             try {
                                 const res = await apiFetch(`${API_BASE}/admin/users/${username}`, {
                                     method: 'DELETE'
@@ -694,9 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (!res.ok) throw new Error('Failed to delete user');
                                 fetchUsers();
                             } catch (err) {
-                                alert(err.message);
+                                openAlertModal("Error", err.message);
                             }
-                        }
+                        });
                     });
                 }
             }
