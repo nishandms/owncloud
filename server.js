@@ -375,6 +375,44 @@ app.get('/api/download', authenticateToken, (req, res) => {
   }
 });
 
+function getNetworkStats() {
+  try {
+    const data = fs.readFileSync('/proc/net/dev', 'utf8');
+    const lines = data.split('\n');
+    let rx = 0;
+    let tx = 0;
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line && !line.startsWith('lo:')) {
+        const parts = line.split(/:|\s+/).filter(Boolean);
+        if (parts.length >= 10) {
+          rx += parseInt(parts[1], 10) || 0;
+          tx += parseInt(parts[9], 10) || 0;
+        }
+      }
+    }
+    return { rx, tx, time: Date.now() };
+  } catch (e) {
+    return { rx: 0, tx: 0, time: Date.now() };
+  }
+}
+
+let lastNetworkStats = getNetworkStats();
+let currentSpeed = { rxSpeed: 0, txSpeed: 0 };
+setInterval(() => {
+  const current = getNetworkStats();
+  const timeDiff = (current.time - lastNetworkStats.time) / 1000;
+  if (timeDiff > 0) {
+    currentSpeed.rxSpeed = Math.max(0, (current.rx - lastNetworkStats.rx) / timeDiff);
+    currentSpeed.txSpeed = Math.max(0, (current.tx - lastNetworkStats.tx) / timeDiff);
+  }
+  lastNetworkStats = current;
+}, 2000);
+
+app.get('/api/network-stats', authenticateToken, (req, res) => {
+  res.json(currentSpeed);
+});
+
 // Helper: Get directory size recursively
 const getDirSize = (dirPath) => {
   let size = 0;

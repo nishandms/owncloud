@@ -85,6 +85,11 @@
                     <div class="storage-info">
                         <h3>Storage Usage</h3>
                         <p id="storage-text">Used 5.0 GB / 10.0 GB Total (50%)</p>
+                        <p id="network-text" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            <i class="ph ph-arrow-down" style="color: var(--primary-color);"></i> <span id="rx-speed">0 B/s</span>
+                            &nbsp;&nbsp;
+                            <i class="ph ph-arrow-up" style="color: var(--danger-color);"></i> <span id="tx-speed">0 B/s</span>
+                        </p>
                     </div>
                     
                     <div class="water-wrapper" style="height: 50%;">
@@ -255,6 +260,8 @@
             </button>
         </div>
         <div id="preview-content-wrapper" class="preview-wrapper"></div>
+        <button id="preview-prev-btn" class="preview-nav-btn" aria-label="Previous" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i class="ph ph-caret-left"></i></button>
+        <button id="preview-next-btn" class="preview-nav-btn" aria-label="Next" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i class="ph ph-caret-right"></i></button>
     </div>
 
     <script src="app.js"></script>

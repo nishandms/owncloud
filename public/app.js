@@ -1,8 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     // State
-    let currentPath = '';
+    let currentPath = history.state && history.state.path !== undefined ? history.state.path : '';
     let allFiles = []; // For searching
     let sheetTargetFile = null; // Which file the bottom sheet is acting on
+    let currentPreviewIndex = -1;
+    let previewFilesList = [];
 
     // DOM Elements
     const fileGrid = document.getElementById('file-grid');
@@ -38,6 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadPreviewBtn = document.getElementById('download-preview-btn');
     const previewFilename = document.getElementById('preview-filename');
     const previewContentWrapper = document.getElementById('preview-content-wrapper');
+    const previewPrevBtn = document.getElementById('preview-prev-btn');
+    const previewNextBtn = document.getElementById('preview-next-btn');
 
     // API Base
     const API_BASE = '/api';
@@ -248,8 +252,63 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function fetchNetworkStats() {
+        if (!authToken) return;
+        try {
+            const res = await apiFetch(`${API_BASE}/network-stats`);
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            const formatBytes = (bytes) => {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            };
+
+            const rxSpeedEl = document.getElementById('rx-speed');
+            const txSpeedEl = document.getElementById('tx-speed');
+            if (rxSpeedEl) rxSpeedEl.textContent = formatBytes(data.rxSpeed) + '/s';
+            if (txSpeedEl) txSpeedEl.textContent = formatBytes(data.txSpeed) + '/s';
+        } catch (err) {
+            // silent fail
+        }
+    }
+
+    // Poll network stats
+    setInterval(() => {
+        if (authToken && !document.hidden && document.getElementById('cloud-section') && !document.getElementById('cloud-section').classList.contains('hidden')) {
+            fetchNetworkStats();
+        }
+    }, 2000);
+
     // Event Listeners
     backBtn.addEventListener('click', navigateUp);
+    
+    // History API for directory navigation via back button
+    history.replaceState({ path: currentPath }, '');
+    
+    window.addEventListener('popstate', (e) => {
+        if (e.state && e.state.path !== undefined) {
+            currentPath = e.state.path;
+            searchInput.value = '';
+            
+            // Switch to cloud tab (this also calls fetchFiles())
+            if (typeof switchTab === 'function') {
+                switchTab('cloud');
+            } else {
+                fetchFiles();
+            }
+            
+            // Close any open modals/overlays
+            if (typeof closeBottomSheet === 'function') closeBottomSheet();
+            ['preview-modal', 'generic-modal', 'editor-modal', 'confirm-modal', 'alert-modal'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+        }
+    });
     
     // Search Filter
     searchInput.addEventListener('input', (e) => {
@@ -318,6 +377,28 @@ document.addEventListener('DOMContentLoaded', () => {
         previewModal.classList.add('hidden');
         previewContentWrapper.innerHTML = '';
     });
+
+    if (previewPrevBtn) {
+        previewPrevBtn.addEventListener('click', () => {
+            if (currentPreviewIndex > 0) {
+                previewFile(previewFilesList[currentPreviewIndex - 1].name);
+            }
+        });
+    }
+
+    if (previewNextBtn) {
+        previewNextBtn.addEventListener('click', () => {
+            if (currentPreviewIndex !== -1 && currentPreviewIndex < previewFilesList.length - 1) {
+                previewFile(previewFilesList[currentPreviewIndex + 1].name);
+            }
+        });
+    }
+
+    function updatePreviewNavButtons() {
+        if (!previewPrevBtn || !previewNextBtn) return;
+        previewPrevBtn.style.display = currentPreviewIndex > 0 ? 'flex' : 'none';
+        previewNextBtn.style.display = (currentPreviewIndex !== -1 && currentPreviewIndex < previewFilesList.length - 1) ? 'flex' : 'none';
+    }
 
     // Bottom Sheet Actions
     sheetDownloadBtn.addEventListener('click', () => {
@@ -446,6 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.addEventListener('click', () => {
                 if (file.isDirectory) {
                     currentPath = currentPath ? `${currentPath}/${file.name}` : file.name;
+                    history.pushState({ path: currentPath }, '');
                     searchInput.value = ''; // clear search on navigate
                     fetchFiles();
                 } else {
@@ -485,11 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function navigateUp() {
         if (!currentPath) return;
-        const parts = currentPath.split('/');
-        parts.pop();
-        currentPath = parts.join('/');
-        searchInput.value = '';
-        fetchFiles();
+        // Instead of popping parts manually, we use history API to keep browser back button in sync
+        history.back();
     }
 
     function openModal(title, initialValue, onConfirm) {
@@ -670,6 +749,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function previewFile(filename) {
+        const query = searchInput.value.toLowerCase();
+        const filtered = query ? allFiles.filter(f => f.name.toLowerCase().includes(query)) : allFiles;
+        
+        // Ensure folders are excluded and files are sorted as in the grid (folders first, then alphabetically, but since we exclude folders, just alphabetically)
+        previewFilesList = filtered.filter(f => !f.isDirectory).sort((a, b) => a.name.localeCompare(b.name));
+        currentPreviewIndex = previewFilesList.findIndex(f => f.name === filename);
+        updatePreviewNavButtons();
+
         const ext = filename.split('.').pop().toLowerCase();
         const filePath = currentPath ? `${currentPath}/${filename}` : filename;
         const fileUrl = `${API_BASE}/download?path=${encodeURIComponent(filePath)}&token=${authToken}`;
