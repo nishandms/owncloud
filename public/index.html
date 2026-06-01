@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cloud</title>
-    
+
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#09090b">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="apple-touch-icon" href="icon.svg">
-    
+
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
+
 <body>
-    
+
     <!-- Login Screen -->
     <div id="login-screen" class="login-overlay">
         <div class="login-box">
@@ -26,11 +28,16 @@
                 <p>Enter your credentials to access your secure storage.</p>
             </div>
             <form id="login-form">
-                <input type="text" id="login-username" placeholder="Username" required autocomplete="username" style="margin-bottom: 0.75rem;">
-                <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
-                <button type="submit" class="btn primary-btn" style="width:100%; margin-top: 1rem; padding: 0.75rem;">Login</button>
+                <input type="text" id="login-username" placeholder="Username" required autocomplete="username"
+                    style="margin-bottom: 0.75rem;">
+                <input type="password" id="login-password" placeholder="Password" required
+                    autocomplete="current-password">
+                <button type="submit" class="btn primary-btn"
+                    style="width:100%; margin-top: 1rem; padding: 0.75rem;">Login</button>
             </form>
-            <div id="login-error" style="color: var(--danger-color); font-size: 0.875rem; text-align: center; margin-top: 1rem; display: none;"></div>
+            <div id="login-error"
+                style="color: var(--danger-color); font-size: 0.875rem; text-align: center; margin-top: 1rem; display: none;">
+            </div>
         </div>
     </div>
 
@@ -75,27 +82,35 @@
                 <div class="section-header">
                     <h2>Storage</h2>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i class="ph ph-upload-simple"></i></button>
-                        <button class="icon-btn action-btn" id="new-file-btn" aria-label="New file"><i class="ph ph-file-plus"></i></button>
-                        <button class="icon-btn action-btn" id="new-folder-btn" aria-label="New folder"><i class="ph ph-folder-plus"></i></button>
+                        <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i
+                                class="ph ph-upload-simple"></i></button>
+                        <button class="icon-btn action-btn" id="new-file-btn" aria-label="New file"><i
+                                class="ph ph-file-plus"></i></button>
+                        <button class="icon-btn action-btn" id="new-folder-btn" aria-label="New folder"><i
+                                class="ph ph-folder-plus"></i></button>
                     </div>
                 </div>
-                
+
                 <div class="storage-widget">
                     <div class="storage-info">
                         <h3>Storage Usage</h3>
                         <p id="storage-text">Used 5.0 GB / 10.0 GB Total (50%)</p>
-                        <p id="network-text" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                            <i class="ph ph-arrow-down" style="color: var(--primary-color);"></i> <span id="rx-speed">0 B/s</span>
+                        <p id="network-text"
+                            style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            <i class="ph ph-arrow-down" style="color: var(--primary-color);"></i> <span id="rx-speed">0
+                                B/s</span>
                             &nbsp;&nbsp;
-                            <i class="ph ph-arrow-up" style="color: var(--danger-color);"></i> <span id="tx-speed">0 B/s</span>
+                            <i class="ph ph-arrow-up" style="color: var(--danger-color);"></i> <span id="tx-speed">0
+                                B/s</span>
                         </p>
                     </div>
-                    
+
                     <div class="water-wrapper" style="height: 50%;">
-                        <svg class="waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+                        <svg class="waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 24 150 28"
+                            preserveAspectRatio="none" shape-rendering="auto">
                             <defs>
-                                <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v44h-352z" />
+                                <path id="gentle-wave"
+                                    d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v44h-352z" />
                             </defs>
                             <g class="parallax">
                                 <use href="#gentle-wave" x="48" y="0" />
@@ -111,9 +126,10 @@
                 <!-- Files Grid -->
                 <div class="section-header">
                     <h2>Last Used</h2>
-                    <button class="icon-btn action-btn hidden" id="back-btn"><i class="ph ph-caret-left"></i> Back</button>
+                    <button class="icon-btn action-btn hidden" id="back-btn"><i class="ph ph-caret-left"></i>
+                        Back</button>
                 </div>
-                
+
                 <div class="file-grid" id="file-grid">
                     <!-- Files injected here -->
                     <div class="loading-state">
@@ -127,7 +143,8 @@
             <div id="users-section" class="hidden">
                 <div class="section-header">
                     <h2>User Management</h2>
-                    <button class="btn primary-btn" id="create-user-modal-btn" style="display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); padding: 0.5rem 1.25rem;">
+                    <button class="btn primary-btn" id="create-user-modal-btn"
+                        style="display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); padding: 0.5rem 1.25rem;">
                         <i class="ph ph-user-plus" style="font-size: 1.1rem;"></i>
                         <span>Create Account</span>
                     </button>
@@ -160,7 +177,8 @@
                 <h3 id="sheet-item-name">Graphic Design</h3>
             </div>
             <div class="sheet-actions">
-                <button class="sheet-btn" id="sheet-download-btn"><i class="ph ph-download-simple"></i> Download</button>
+                <button class="sheet-btn" id="sheet-download-btn"><i class="ph ph-download-simple"></i>
+                    Download</button>
                 <button class="sheet-btn"><i class="ph ph-link"></i> Copy a Shareable Link</button>
                 <button class="sheet-btn" id="sheet-rename-btn"><i class="ph ph-pencil-simple"></i> Rename</button>
                 <button class="sheet-btn danger" id="sheet-delete-btn"><i class="ph ph-trash"></i> Delete</button>
@@ -189,14 +207,19 @@
         <div class="modal">
             <h2>Create New Account</h2>
             <form id="create-user-form" style="margin-top: 1rem;">
-                <label for="create-username" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Username</label>
-                <input type="text" id="create-username" placeholder="Username (min 3 chars)" required autocomplete="off" style="margin-bottom: 1rem;">
-                
-                <label for="create-password" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Password</label>
-                <input type="password" id="create-password" placeholder="Password" required autocomplete="off" style="margin-bottom: 1.5rem;">
-                
-                <div id="create-user-error" style="color: var(--danger-color); font-size: 0.875rem; margin-bottom: 1rem; display: none;"></div>
-                
+                <label for="create-username"
+                    style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Username</label>
+                <input type="text" id="create-username" placeholder="Username (min 3 chars)" required autocomplete="off"
+                    style="margin-bottom: 1rem;">
+
+                <label for="create-password"
+                    style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Password</label>
+                <input type="password" id="create-password" placeholder="Password" required autocomplete="off"
+                    style="margin-bottom: 1.5rem;">
+
+                <div id="create-user-error"
+                    style="color: var(--danger-color); font-size: 0.875rem; margin-bottom: 1rem; display: none;"></div>
+
                 <div class="modal-actions">
                     <button type="button" class="btn secondary-btn" id="create-user-cancel-btn">Cancel</button>
                     <button type="submit" class="btn primary-btn">Create User</button>
@@ -206,9 +229,20 @@
     </div>
 
     <!-- Toast -->
-    <div id="upload-toast" class="toast hidden">
-        <i class="ph ph-spinner ph-spin icon-spin"></i>
-        <span id="upload-toast-text">Uploading...</span>
+    <div id="upload-toast" class="toast hidden"
+        style="flex-direction: column; align-items: stretch; min-width: 280px; border-radius: var(--radius-md); padding: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <i class="ph ph-spinner ph-spin icon-spin"></i>
+            <span id="upload-toast-text">Uploading...</span>
+        </div>
+        <div style="height: 6px; background: var(--surface-active); border-radius: 3px; overflow: hidden;">
+            <div id="upload-progress-bar"
+                style="height: 100%; width: 0%; background: var(--accent-color); transition: width 0.2s ease-out;">
+            </div>
+        </div>
+        <div id="upload-progress-text"
+            style="font-size: 0.8rem; text-align: center; margin-top: 0.5rem; color: var(--text-secondary); font-weight: 600;">
+            0%</div>
     </div>
 
     <!-- Confirm Modal -->
@@ -218,7 +252,8 @@
             <p id="confirm-modal-message" style="margin-top: 1rem; color: var(--text-secondary); line-height: 1.5;"></p>
             <div class="modal-actions" style="margin-top: 1.5rem;">
                 <button class="btn secondary-btn" id="confirm-modal-cancel-btn">Cancel</button>
-                <button class="btn primary-btn" id="confirm-modal-confirm-btn" style="background: var(--danger-color); border-color: var(--danger-color); color: white;">Confirm</button>
+                <button class="btn primary-btn" id="confirm-modal-confirm-btn"
+                    style="background: var(--danger-color); border-color: var(--danger-color); color: white;">Confirm</button>
             </div>
         </div>
     </div>
@@ -238,9 +273,12 @@
     <div id="editor-modal" class="modal-overlay hidden" style="z-index: 2000;">
         <div class="modal" style="width: 800px; max-width: 95vw; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 id="editor-filename" style="font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></h2>
+                <h2 id="editor-filename"
+                    style="font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></h2>
             </div>
-            <textarea id="editor-textarea" style="flex-grow: 1; height: 60vh; margin: 1rem 0; padding: 1rem; background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: 'Inter', monospace; resize: vertical; line-height: 1.5; font-size: 0.9rem;" spellcheck="false"></textarea>
+            <textarea id="editor-textarea"
+                style="flex-grow: 1; height: 60vh; margin: 1rem 0; padding: 1rem; background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: 'Inter', monospace; resize: vertical; line-height: 1.5; font-size: 0.9rem;"
+                spellcheck="false"></textarea>
             <div class="modal-actions">
                 <button class="btn secondary-btn" id="editor-cancel-btn">Cancel</button>
                 <button class="btn primary-btn" id="editor-save-btn">Save</button>
@@ -254,14 +292,19 @@
             <button id="close-preview-btn" class="preview-action-btn" aria-label="Close preview">
                 <i class="ph ph-arrow-left"></i>
             </button>
-            <span id="preview-filename" style="color: white; flex-grow: 1; text-align: center; font-weight: 500; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1rem;"></span>
+            <span id="preview-filename"
+                style="color: white; flex-grow: 1; text-align: center; font-weight: 500; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1rem;"></span>
             <button id="download-preview-btn" class="preview-action-btn" aria-label="Download">
                 <i class="ph ph-download-simple"></i>
             </button>
         </div>
         <div id="preview-content-wrapper" class="preview-wrapper"></div>
-        <button id="preview-prev-btn" class="preview-nav-btn" aria-label="Previous" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i class="ph ph-caret-left"></i></button>
-        <button id="preview-next-btn" class="preview-nav-btn" aria-label="Next" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i class="ph ph-caret-right"></i></button>
+        <button id="preview-prev-btn" class="preview-nav-btn" aria-label="Previous"
+            style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i
+                class="ph ph-caret-left"></i></button>
+        <button id="preview-next-btn" class="preview-nav-btn" aria-label="Next"
+            style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i
+                class="ph ph-caret-right"></i></button>
     </div>
 
     <script src="app.js"></script>
@@ -277,4 +320,5 @@
         }
     </script>
 </body>
+
 </html>

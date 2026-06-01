@@ -375,41 +375,36 @@ app.get('/api/download', authenticateToken, (req, res) => {
   }
 });
 
-function getNetworkStats() {
-  try {
-    const data = fs.readFileSync('/proc/net/dev', 'utf8');
-    const lines = data.split('\n');
-    let rx = 0;
-    let tx = 0;
-    for (let i = 2; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line && !line.startsWith('lo:')) {
-        const parts = line.split(/:|\s+/).filter(Boolean);
-        if (parts.length >= 10) {
-          rx += parseInt(parts[1], 10) || 0;
-          tx += parseInt(parts[9], 10) || 0;
-        }
-      }
-    }
-    return { rx, tx, time: Date.now() };
-  } catch (e) {
-    return { rx: 0, tx: 0, time: Date.now() };
-  }
-}
-
-let lastNetworkStats = getNetworkStats();
+let accumulatedRx = 0;
+let accumulatedTx = 0;
+const activeSockets = new Set();
+let lastCheckedRx = 0;
+let lastCheckedTx = 0;
 let currentSpeed = { rxSpeed: 0, txSpeed: 0 };
+
 setInterval(() => {
-  const current = getNetworkStats();
-  const timeDiff = (current.time - lastNetworkStats.time) / 1000;
-  if (timeDiff > 0) {
-    currentSpeed.rxSpeed = Math.max(0, (current.rx - lastNetworkStats.rx) / timeDiff);
-    currentSpeed.txSpeed = Math.max(0, (current.tx - lastNetworkStats.tx) / timeDiff);
+  let totalRx = accumulatedRx;
+  let totalTx = accumulatedTx;
+  
+  for (const socket of activeSockets) {
+    totalRx += socket.bytesRead || 0;
+    totalTx += socket.bytesWritten || 0;
   }
-  lastNetworkStats = current;
+  
+  if (lastCheckedRx !== 0 || lastCheckedTx !== 0) {
+    currentSpeed.rxSpeed = Math.max(0, (totalRx - lastCheckedRx) / 2);
+    currentSpeed.txSpeed = Math.max(0, (totalTx - lastCheckedTx) / 2);
+  }
+  
+  lastCheckedRx = totalRx;
+  lastCheckedTx = totalTx;
 }, 2000);
 
 app.get('/api/network-stats', authenticateToken, (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
   res.json(currentSpeed);
 });
 
@@ -432,6 +427,10 @@ const getDirSize = (dirPath) => {
 
 // API: Get storage stats
 app.get('/api/storage-stats', authenticateToken, (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
   try {
     const userFolder = getUserStorageFolder(req.user.user);
     const usedBytes = getDirSize(userFolder);
@@ -509,6 +508,17 @@ app.delete('/api/admin/users/:username', authenticateToken, authenticateAdmin, (
 
 // Start server
 const server = https.createServer(sslOptions, app);
+server.timeout = 0; // Disable timeout for large uploads
+server.keepAliveTimeout = 120000;
+
+server.on('connection', (socket) => {
+  activeSockets.add(socket);
+  socket.on('close', () => {
+    accumulatedRx += socket.bytesRead || 0;
+    accumulatedTx += socket.bytesWritten || 0;
+    activeSockets.delete(socket);
+  });
+});
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Cloud storage server running at https://0.0.0.0:${PORT}`);

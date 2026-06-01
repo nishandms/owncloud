@@ -667,22 +667,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const toast = document.getElementById('upload-toast');
-        document.getElementById('upload-toast-text').textContent = `Uploading ${files.length} file(s)...`;
+        const toastText = document.getElementById('upload-toast-text');
+        const progressBar = document.getElementById('upload-progress-bar');
+        const progressText = document.getElementById('upload-progress-text');
+        
+        toastText.textContent = `Uploading ${files.length} file(s)...`;
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressText) progressText.textContent = '0%';
         toast.classList.remove('hidden');
 
+        const uploadUrl = `${API_BASE}/upload?path=${encodeURIComponent(currentPath)}`;
+        
         try {
-            const res = await apiFetch(`${API_BASE}/upload?path=${encodeURIComponent(currentPath)}`, {
-                method: 'POST',
-                body: formData
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', uploadUrl);
+                if (authToken) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+                }
+                
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        if (progressBar) progressBar.style.width = `${percentComplete}%`;
+                        if (progressText) progressText.textContent = `${percentComplete}%`;
+                    }
+                };
+                
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve();
+                    } else if (xhr.status === 401 || xhr.status === 403) {
+                        handleLogout();
+                        reject(new Error('Unauthorized'));
+                    } else {
+                        reject(new Error('Upload failed'));
+                    }
+                };
+                
+                xhr.onerror = () => reject(new Error('Network error during upload'));
+                
+                xhr.send(formData);
             });
-            if (!res.ok) throw new Error('Upload failed');
             fetchFiles();
         } catch (err) {
             console.error(err);
-            openAlertModal("Error", 'Failed to upload files');
+            openAlertModal("Error", 'Failed to upload files. Ensure you have a stable connection and the file is not too large.');
         } finally {
-            toast.classList.add('hidden');
-            fileInput.value = '';
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                fileInput.value = '';
+            }, 1000);
         }
     }
 
