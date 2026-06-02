@@ -661,11 +661,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const files = e.target.files;
         if (!files.length) return;
 
-        const formData = new FormData();
-        for (let i = 0; i < files.length; i++) {
-            formData.append('files', files[i]);
-        }
-
         const toast = document.getElementById('upload-toast');
         const toastText = document.getElementById('upload-toast-text');
         const progressBar = document.getElementById('upload-progress-bar');
@@ -676,43 +671,69 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressText) progressText.textContent = '0%';
         toast.classList.remove('hidden');
 
-        const uploadUrl = `${API_BASE}/upload?path=${encodeURIComponent(currentPath)}`;
-        
+        const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
         try {
-            await new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', uploadUrl);
-                if (authToken) {
-                    xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+            for (let f = 0; f < files.length; f++) {
+                const file = files[f];
+                const totalChunks = Math.ceil(file.size / CHUNK_SIZE) || 1;
+                
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, file.size);
+                    const chunk = file.slice(start, end);
+
+                    const formData = new FormData();
+                    formData.append('filename', file.name);
+                    formData.append('chunkIndex', i);
+                    formData.append('totalChunks', totalChunks);
+                    formData.append('path', currentPath);
+                    formData.append('chunk', chunk, file.name);
+
+                    await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', `${API_BASE}/upload-chunk`);
+                        if (authToken) {
+                            xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+                        }
+                        
+                        xhr.upload.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                const chunkLoaded = event.loaded;
+                                const totalLoaded = start + chunkLoaded;
+                                
+                                const totalOverallSize = Array.from(files).reduce((acc, curr) => acc + curr.size, 0) || 1;
+                                let previousFilesSize = 0;
+                                for (let j = 0; j < f; j++) previousFilesSize += files[j].size;
+                                
+                                const overallPercent = Math.min(100, Math.round(((previousFilesSize + totalLoaded) / totalOverallSize) * 100));
+                                
+                                if (progressBar) progressBar.style.width = `${overallPercent}%`;
+                                if (progressText) progressText.textContent = `${overallPercent}%`;
+                            }
+                        };
+                        
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                resolve();
+                            } else if (xhr.status === 401 || xhr.status === 403) {
+                                handleLogout();
+                                reject(new Error('Unauthorized'));
+                            } else {
+                                reject(new Error('Upload failed'));
+                            }
+                        };
+                        
+                        xhr.onerror = () => reject(new Error('Network error during upload'));
+                        
+                        xhr.send(formData);
+                    });
                 }
-                
-                xhr.upload.onprogress = (event) => {
-                    if (event.lengthComputable) {
-                        const percentComplete = Math.round((event.loaded / event.total) * 100);
-                        if (progressBar) progressBar.style.width = `${percentComplete}%`;
-                        if (progressText) progressText.textContent = `${percentComplete}%`;
-                    }
-                };
-                
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve();
-                    } else if (xhr.status === 401 || xhr.status === 403) {
-                        handleLogout();
-                        reject(new Error('Unauthorized'));
-                    } else {
-                        reject(new Error('Upload failed'));
-                    }
-                };
-                
-                xhr.onerror = () => reject(new Error('Network error during upload'));
-                
-                xhr.send(formData);
-            });
+            }
             fetchFiles();
         } catch (err) {
             console.error(err);
-            openAlertModal("Error", 'Failed to upload files. Ensure you have a stable connection and the file is not too large.');
+            openAlertModal("Error", 'Failed to upload files. Ensure you have a stable connection.');
         } finally {
             setTimeout(() => {
                 toast.classList.add('hidden');

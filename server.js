@@ -181,6 +181,70 @@ app.post('/api/upload', authenticateToken, upload.array('files'), (req, res) => 
   res.json({ message: 'Files uploaded successfully', files: req.files.map(f => f.filename) });
 });
 
+// API: Chunked upload
+const chunkStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = req.body.path || req.query.path || '';
+    const userFolder = getUserStorageFolder(req.user.user);
+    const fullPath = path.join(userFolder, uploadPath);
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+    cb(null, fullPath);
+  },
+  filename: function (req, file, cb) {
+    cb(null, 'chunk_' + Date.now() + '_' + file.originalname);
+  }
+});
+const uploadChunk = multer({ storage: chunkStorage });
+
+app.post('/api/upload-chunk', authenticateToken, uploadChunk.single('chunk'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No chunk uploaded' });
+  }
+
+  const chunkIndex = parseInt(req.body.chunkIndex);
+  const totalChunks = parseInt(req.body.totalChunks);
+  const fileName = req.body.filename;
+  const targetPath = req.body.path || '';
+  
+  const userFolder = getUserStorageFolder(req.user.user);
+  const finalPath = path.join(userFolder, targetPath, fileName);
+  const tempPath = finalPath + '.part';
+  const chunkPath = req.file.path;
+
+  // Prevent directory traversal
+  if (!finalPath.startsWith(userFolder)) {
+    if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const writeStream = fs.createWriteStream(tempPath, { flags: chunkIndex === 0 ? 'w' : 'a' });
+  const readStream = fs.createReadStream(chunkPath);
+  
+  readStream.pipe(writeStream);
+  
+  writeStream.on('finish', () => {
+    if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    
+    if (chunkIndex === totalChunks - 1) {
+      if (fs.existsSync(finalPath)) {
+        fs.unlinkSync(finalPath);
+      }
+      fs.renameSync(tempPath, finalPath);
+      res.json({ message: 'File uploaded completely', complete: true });
+    } else {
+      res.json({ message: 'Chunk received', complete: false });
+    }
+  });
+  
+  writeStream.on('error', (err) => {
+    console.error('Stream write error:', err);
+    if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    res.status(500).json({ error: 'Failed to append chunk' });
+  });
+});
+
 // API: Create folder
 app.post('/api/folder', authenticateToken, (req, res) => {
   const targetPath = req.body.path || '';
