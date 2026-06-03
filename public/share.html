@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shared Folder</title>
+
+    <meta name="theme-color" content="#09090b">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <i class="ph ph-cloud"></i>
+            <h2>Storage</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="active"><i class="ph ph-folder-open"></i> Shared Folder</a>
+            <a href="#" id="sidebar-theme-toggle" style="margin-top: auto;"><i class="ph ph-moon"></i> Theme</a>
+        </nav>
+    </aside>
+
+    <div class="app-wrapper" id="app-wrapper">
+        <!-- Header -->
+        <header class="app-header">
+            <button class="menu-btn icon-btn" id="menu-btn"><i class="ph ph-list"></i></button>
+            <h1 class="header-title" id="share-title">Loading...</h1>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="icon-btn action-btn" id="header-theme-toggle" aria-label="Toggle Theme">
+                    <i class="ph ph-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Scroll Area -->
+        <main class="main-content">
+            <div id="cloud-section">
+                <!-- Share Info Banner -->
+                <div style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 0.9rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="ph ph-info" style="font-size: 1.25rem; color: var(--primary-color);"></i>
+                    <span id="share-owner" style="line-height: 1.4;"></span>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <i class="ph ph-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search in Folder" autocomplete="off">
+                </div>
+
+                <!-- Files Grid -->
+                <div class="section-header">
+                    <h2 id="current-path-display">Contents</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="icon-btn action-btn hidden" id="back-btn"><i class="ph ph-caret-left"></i> Back</button>
+                        <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i class="ph ph-upload-simple"></i></button>
+                    </div>
+                </div>
+
+                <div class="file-grid" id="file-grid">
+                    <div class="loading-state">
+                        <i class="ph ph-spinner ph-spin icon-spin"></i>
+                        <p>Loading files...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden Inputs -->
+    <input type="file" id="file-input" multiple hidden>
+
+    <!-- Toast -->
+    <div id="upload-toast" class="toast hidden"
+        style="flex-direction: column; align-items: stretch; min-width: 280px; border-radius: var(--radius-md); padding: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <i class="ph ph-spinner ph-spin icon-spin"></i>
+            <span id="upload-toast-text">Uploading...</span>
+        </div>
+        <div style="height: 6px; background: var(--surface-active); border-radius: 3px; overflow: hidden;">
+            <div id="upload-progress-bar"
+                style="height: 100%; width: 0%; background: var(--accent-color); transition: width 0.2s ease-out;">
+            </div>
+        </div>
+        <div id="upload-progress-text"
+            style="font-size: 0.8rem; text-align: center; margin-top: 0.5rem; color: var(--text-secondary); font-weight: 600;">
+            0%</div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="modal-overlay hidden" style="z-index: 2500;">
+        <div class="modal">
+            <h2 id="alert-modal-title">Alert</h2>
+            <p id="alert-modal-message" style="margin-top: 1rem; color: var(--text-secondary); line-height: 1.5;"></p>
+            <div class="modal-actions" style="margin-top: 1.5rem; justify-content: center;">
+                <button class="btn primary-btn" id="alert-modal-ok-btn" style="width: 100%;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="modal-overlay hidden" style="z-index: 2000; flex-direction: column;">
+        <div class="preview-header">
+            <button id="close-preview-btn" class="preview-action-btn" aria-label="Close preview">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <span id="preview-filename" style="color: white; flex-grow: 1; text-align: center; font-weight: 500; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1rem;"></span>
+            <button id="download-preview-btn" class="preview-action-btn" aria-label="Download">
+                <i class="ph ph-download-simple"></i>
+            </button>
+        </div>
+        <div id="preview-content-wrapper" class="preview-wrapper"></div>
+        <button id="preview-prev-btn" class="preview-nav-btn" aria-label="Previous" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i class="ph ph-caret-left"></i></button>
+        <button id="preview-next-btn" class="preview-nav-btn" aria-label="Next" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2010; font-size: 1.5rem; transition: background 0.2s;"><i class="ph ph-caret-right"></i></button>
+    </div>
+
+    <script src="share.js"></script>
+</body>
+
+</html>

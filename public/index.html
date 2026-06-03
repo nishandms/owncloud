@@ -179,7 +179,7 @@
             <div class="sheet-actions">
                 <button class="sheet-btn" id="sheet-download-btn"><i class="ph ph-download-simple"></i>
                     Download</button>
-                <button class="sheet-btn"><i class="ph ph-link"></i> Copy a Shareable Link</button>
+                <button class="sheet-btn" id="sheet-share-btn"><i class="ph ph-link"></i> Copy a Shareable Link</button>
                 <button class="sheet-btn" id="sheet-rename-btn"><i class="ph ph-pencil-simple"></i> Rename</button>
                 <button class="sheet-btn danger" id="sheet-delete-btn"><i class="ph ph-trash"></i> Delete</button>
                 <button class="sheet-btn"><i class="ph ph-info"></i> View Details</button>
@@ -243,6 +243,37 @@
         <div id="upload-progress-text"
             style="font-size: 0.8rem; text-align: center; margin-top: 0.5rem; color: var(--text-secondary); font-weight: 600;">
             0%</div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <h2>Share Folder</h2>
+            <div id="share-setup" style="margin-top: 1rem;">
+                <label for="share-expiry" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Expiration Time</label>
+                <select id="share-expiry" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-md); background: var(--bg-color); color: var(--text-primary); border: 1px solid var(--border-color); margin-bottom: 1.5rem; font-family: 'Inter', sans-serif;">
+                    <option value="1">1 Hour</option>
+                    <option value="24">1 Day</option>
+                    <option value="168">7 Days</option>
+                    <option value="">Never</option>
+                </select>
+                <div class="modal-actions">
+                    <button class="btn secondary-btn" id="share-cancel-btn">Cancel</button>
+                    <button class="btn primary-btn" id="share-generate-btn">Generate Link</button>
+                </div>
+            </div>
+            
+            <div id="share-result" class="hidden" style="margin-top: 1rem;">
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Shareable Link generated:</p>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <input type="text" id="share-link-input" readonly style="flex-grow: 1;">
+                    <button class="btn primary-btn" id="share-copy-btn"><i class="ph ph-copy"></i></button>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn secondary-btn" id="share-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Confirm Modal -->

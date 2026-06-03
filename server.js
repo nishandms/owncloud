@@ -38,6 +38,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // User Database Utilities
 const USERS_FILE = path.join(__dirname, 'users.json');
+const SHARES_FILE = path.join(__dirname, 'shares.json');
 
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
@@ -62,6 +63,19 @@ function loadUsers() {
 
 function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
+
+function loadShares() {
+  if (!fs.existsSync(SHARES_FILE)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(SHARES_FILE, 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveShares(shares) {
+  fs.writeFileSync(SHARES_FILE, JSON.stringify(shares, null, 2));
 }
 
 // Storage isolation utility
@@ -437,6 +451,211 @@ app.get('/api/download', authenticateToken, (req, res) => {
   } else {
     res.sendFile(fullPath);
   }
+});
+
+// API: Create a Share Link
+app.post('/api/share', authenticateToken, (req, res) => {
+  const targetPath = req.body.path;
+  const expiresInHours = req.body.expiresInHours;
+  
+  if (!targetPath) return res.status(400).json({ error: 'Path is required' });
+
+  const userFolder = getUserStorageFolder(req.user.user);
+  const fullPath = path.join(userFolder, targetPath);
+
+  if (!fullPath.startsWith(userFolder) || !fs.existsSync(fullPath)) {
+    return res.status(404).json({ error: 'Folder not found' });
+  }
+  
+  if (!fs.statSync(fullPath).isDirectory()) {
+    return res.status(400).json({ error: 'Path must be a directory' });
+  }
+
+  const shares = loadShares();
+  const shareId = crypto.randomBytes(16).toString('hex');
+  
+  let expiresAt = null;
+  if (expiresInHours) {
+    expiresAt = Date.now() + (expiresInHours * 60 * 60 * 1000);
+  }
+
+  shares[shareId] = {
+    owner: req.user.user,
+    path: targetPath,
+    expiresAt: expiresAt,
+    createdAt: Date.now()
+  };
+
+  saveShares(shares);
+  res.json({ shareId, url: `/share.html?id=${shareId}` });
+});
+
+// Middleware for Public Share Access
+function validateShare(req, res, next) {
+  const shareId = req.params.shareId;
+  const shares = loadShares();
+  const share = shares[shareId];
+
+  if (!share) return res.status(404).json({ error: 'Share not found' });
+
+  if (share.expiresAt && Date.now() > share.expiresAt) {
+    delete shares[shareId];
+    saveShares(shares);
+    return res.status(410).json({ error: 'Share has expired' });
+  }
+
+  req.share = share;
+  next();
+}
+
+// API: Get Shared Folder Info
+app.get('/api/public/share/:shareId', validateShare, (req, res) => {
+  res.json({ 
+    owner: req.share.owner, 
+    path: req.share.path.split('/').pop() || 'Shared Folder',
+    expiresAt: req.share.expiresAt
+  });
+});
+
+// API: Get files in Shared Folder
+app.get('/api/public/share/:shareId/files', validateShare, (req, res) => {
+  const subPath = req.query.path || '';
+  const userFolder = getUserStorageFolder(req.share.owner);
+  
+  const shareBasePath = path.join(userFolder, req.share.path);
+  const fullPath = path.join(shareBasePath, subPath);
+
+  if (!fullPath.startsWith(shareBasePath)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).json({ error: 'Directory not found' });
+  }
+
+  fs.readdir(fullPath, { withFileTypes: true }, async (err, items) => {
+    if (err) return res.status(500).json({ error: 'Failed to read directory' });
+
+    const util = require('util');
+    const statAsync = util.promisify(fs.stat);
+
+    try {
+      const files = await Promise.all(items.map(async item => {
+        const itemPath = path.join(fullPath, item.name);
+        let stats;
+        try {
+          stats = await statAsync(itemPath);
+        } catch (e) {
+          stats = { size: 0, birthtime: new Date(), mtime: new Date() };
+        }
+        return {
+          name: item.name,
+          isDirectory: item.isDirectory(),
+          path: path.join(subPath, item.name).replace(/\\/g, '/'),
+          size: stats.size,
+          createdAt: stats.birthtime || stats.mtime
+        };
+      }));
+      res.json(files);
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to fetch file stats' });
+    }
+  });
+});
+
+// API: Download file from Shared Folder
+app.get('/api/public/share/:shareId/download', validateShare, (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) {
+    return res.status(400).json({ error: 'File path is required' });
+  }
+
+  const userFolder = getUserStorageFolder(req.share.owner);
+  const shareBasePath = path.join(userFolder, req.share.path);
+  const fullPath = path.join(shareBasePath, filePath);
+
+  if (!fullPath.startsWith(shareBasePath)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  if (!fs.existsSync(fullPath) || fs.statSync(fullPath).isDirectory()) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+
+  if (req.query.download === 'true') {
+    res.download(fullPath);
+  } else {
+    res.sendFile(fullPath);
+  }
+});
+
+// API: Public Upload Chunk
+const publicChunkStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = req.body.path || req.query.path || '';
+    const userFolder = getUserStorageFolder(req.share.owner);
+    const shareBasePath = path.join(userFolder, req.share.path);
+    const fullPath = path.join(shareBasePath, uploadPath);
+    
+    if (!fullPath.startsWith(shareBasePath)) {
+      return cb(new Error('Access denied'));
+    }
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath, { recursive: true });
+    }
+    cb(null, fullPath);
+  },
+  filename: function (req, file, cb) {
+    cb(null, 'public_chunk_' + Date.now() + '_' + file.originalname);
+  }
+});
+const publicUploadChunk = multer({ storage: publicChunkStorage });
+
+app.post('/api/public/share/:shareId/upload-chunk', validateShare, publicUploadChunk.single('chunk'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No chunk uploaded' });
+  }
+
+  const chunkIndex = parseInt(req.body.chunkIndex);
+  const totalChunks = parseInt(req.body.totalChunks);
+  const fileName = req.body.filename;
+  const targetPath = req.body.path || '';
+  
+  const userFolder = getUserStorageFolder(req.share.owner);
+  const shareBasePath = path.join(userFolder, req.share.path);
+  const finalPath = path.join(shareBasePath, targetPath, fileName);
+  const tempPath = finalPath + '.part';
+  const chunkPath = req.file.path;
+
+  if (!finalPath.startsWith(shareBasePath)) {
+    if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const writeStream = fs.createWriteStream(tempPath, { flags: chunkIndex === 0 ? 'w' : 'a' });
+  const readStream = fs.createReadStream(chunkPath);
+  
+  readStream.pipe(writeStream);
+  
+  writeStream.on('finish', () => {
+    if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    
+    if (chunkIndex === totalChunks - 1) {
+      if (fs.existsSync(finalPath)) {
+        fs.unlinkSync(finalPath);
+      }
+      fs.renameSync(tempPath, finalPath);
+      res.json({ message: 'File uploaded completely', complete: true });
+    } else {
+      res.json({ message: 'Chunk received', complete: false });
+    }
+  });
+  
+  writeStream.on('error', (err) => {
+    console.error('Stream write error:', err);
+    if (fs.existsSync(chunkPath)) fs.unlinkSync(chunkPath);
+    res.status(500).json({ error: 'Failed to append chunk' });
+  });
 });
 
 let accumulatedRx = 0;

@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPath = history.state && history.state.path !== undefined ? history.state.path : '';
     let allFiles = []; // For searching
     let sheetTargetFile = null; // Which file the bottom sheet is acting on
+    let shareTargetFile = null; // Which file is being shared
     let currentPreviewIndex = -1;
     let previewFilesList = [];
 
@@ -30,6 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const sheetDownloadBtn = document.getElementById('sheet-download-btn');
     const sheetRenameBtn = document.getElementById('sheet-rename-btn');
     const sheetDeleteBtn = document.getElementById('sheet-delete-btn');
+    const sheetShareBtn = document.getElementById('sheet-share-btn');
+    
+    // Share Modal
+    const shareModal = document.getElementById('share-modal');
+    const shareSetup = document.getElementById('share-setup');
+    const shareResult = document.getElementById('share-result');
+    const shareExpiry = document.getElementById('share-expiry');
+    const shareCancelBtn = document.getElementById('share-cancel-btn');
+    const shareGenerateBtn = document.getElementById('share-generate-btn');
+    const shareLinkInput = document.getElementById('share-link-input');
+    const shareCopyBtn = document.getElementById('share-copy-btn');
+    const shareCloseBtn = document.getElementById('share-close-btn');
     
     // Search
     const searchInput = document.getElementById('search-input');
@@ -303,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Close any open modals/overlays
             if (typeof closeBottomSheet === 'function') closeBottomSheet();
-            ['preview-modal', 'generic-modal', 'editor-modal', 'confirm-modal', 'alert-modal'].forEach(id => {
+            ['preview-modal', 'generic-modal', 'editor-modal', 'confirm-modal', 'alert-modal', 'share-modal'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('hidden');
             });
@@ -414,6 +427,73 @@ document.addEventListener('DOMContentLoaded', () => {
         
         closeBottomSheet();
     });
+
+    if (sheetShareBtn) {
+        sheetShareBtn.addEventListener('click', () => {
+            if (!sheetTargetFile) return;
+            if (!sheetTargetFile.isDirectory) {
+                openAlertModal("Error", "Currently, only folders can be shared.");
+                closeBottomSheet();
+                return;
+            }
+            shareTargetFile = sheetTargetFile;
+            closeBottomSheet();
+            shareSetup.classList.remove('hidden');
+            shareResult.classList.add('hidden');
+            shareModal.classList.remove('hidden');
+            shareExpiry.value = "24"; // default 1 day
+        });
+    }
+
+    if (shareModal) {
+        shareModal.addEventListener('click', (e) => {
+            if (e.target === shareModal) shareModal.classList.add('hidden');
+        });
+    }
+    if (shareCancelBtn) shareCancelBtn.addEventListener('click', () => shareModal.classList.add('hidden'));
+    if (shareCloseBtn) shareCloseBtn.addEventListener('click', () => shareModal.classList.add('hidden'));
+    if (shareCopyBtn) {
+        shareCopyBtn.addEventListener('click', () => {
+            shareLinkInput.select();
+            document.execCommand('copy');
+            shareCopyBtn.innerHTML = '<i class="ph ph-check"></i>';
+            setTimeout(() => shareCopyBtn.innerHTML = '<i class="ph ph-copy"></i>', 2000);
+        });
+    }
+
+    if (shareGenerateBtn) {
+        shareGenerateBtn.addEventListener('click', async () => {
+            if (!shareTargetFile) return;
+            const targetPath = currentPath ? `${currentPath}/${shareTargetFile.name}` : shareTargetFile.name;
+            const expiresInHours = shareExpiry.value ? parseInt(shareExpiry.value) : null;
+            
+            shareGenerateBtn.disabled = true;
+            shareGenerateBtn.textContent = 'Generating...';
+            
+            try {
+                const res = await apiFetch(`${API_BASE}/share`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: targetPath, expiresInHours })
+                });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.error || 'Failed to generate link');
+                
+                const fullUrl = window.location.origin + data.url;
+                shareLinkInput.value = fullUrl;
+                
+                shareSetup.classList.add('hidden');
+                shareResult.classList.remove('hidden');
+            } catch (err) {
+                openAlertModal("Error", err.message);
+                shareModal.classList.add('hidden');
+            } finally {
+                shareGenerateBtn.disabled = false;
+                shareGenerateBtn.textContent = 'Generate Link';
+            }
+        });
+    }
 
     sheetRenameBtn.addEventListener('click', () => {
         if (!sheetTargetFile) return;
