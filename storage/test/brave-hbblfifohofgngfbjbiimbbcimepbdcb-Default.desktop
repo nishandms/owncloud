@@ -1,8 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Terminal=false
-Type=Application
-Name=Cloud Storage
-Exec=/snap/brave/632/opt/brave.com/brave/brave-browser --profile-directory=Default --app-id=hbblfifohofgngfbjbiimbbcimepbdcb
-Icon=brave-hbblfifohofgngfbjbiimbbcimepbdcb-Default
-StartupWMClass=crx_hbblfifohofgngfbjbiimbbcimepbdcb
