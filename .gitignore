@@ -43,3 +43,5 @@ temp/
 
 # Storage
 storage/
+shares.json
+*.pem
