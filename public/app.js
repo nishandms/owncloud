@@ -2,6 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let currentPath = history.state && history.state.path !== undefined ? history.state.path : '';
     let allFiles = []; // For searching
+    
+    // Selection state
+    let selectedItems = new Map(); // Map of name -> file object
+    let isSelectionMode = false;
+    
     let sheetTargetFile = null; // Which file the bottom sheet is acting on
     let shareTargetFile = null; // Which file is being shared
     let currentPreviewIndex = -1;
@@ -11,6 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileGrid = document.getElementById('file-grid');
     const pathDisplay = document.getElementById('current-path-display');
     const backBtn = document.getElementById('back-btn');
+    
+    // Selection UI
+    const selectionActionBar = document.getElementById('selection-action-bar');
+    const cancelSelectionBtn = document.getElementById('cancel-selection-btn');
+    const selectionCount = document.getElementById('selection-count');
+    const batchDownloadBtn = document.getElementById('batch-download-btn');
+    const batchDeleteBtn = document.getElementById('batch-delete-btn');
     
     // Actions
     const newFolderBtn = document.getElementById('new-folder-btn');
@@ -96,10 +108,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const networkToggle = document.getElementById('header-network-toggle');
     const networkModeText = document.getElementById('header-network-text');
     
+    // Check for publicUrl in query params (passed when switching from Public to Local)
+    const urlParams = new URLSearchParams(window.location.search);
+    const passedPublicUrl = urlParams.get('publicUrl');
+    if (passedPublicUrl) {
+        localStorage.setItem('owncloud_public_url', passedPublicUrl);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname.match(/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/);
     
     if (networkModeText) {
-        networkModeText.textContent = isLocal ? 'Local Mode' : 'Public Mode';
+        // Show current mode, or an action
+        networkModeText.textContent = isLocal ? 'Switch to Public' : 'Switch to Local';
     }
 
     if (networkToggle) {
@@ -120,8 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${API_BASE}/server-ip`);
                 const data = await res.json();
                 if (data.ip) {
-                    const localUrl = `https://${data.ip}:${data.port}`;
-                    localStorage.setItem('owncloud_public_url', window.location.href);
+                    const localUrl = `https://${data.ip}:${data.port}?publicUrl=${encodeURIComponent(window.location.origin)}`;
+                    // Store it here too, just in case
+                    localStorage.setItem('owncloud_public_url', window.location.origin);
                     window.location.href = localUrl;
                 } else {
                     if (typeof openAlertModal === 'function') openAlertModal("Error", "Could not get local IP.");
@@ -144,7 +167,74 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginError = document.getElementById('login-error');
     const logoutBtn = document.getElementById('header-logout-btn');
 
-    // Init App
+    cancelSelectionBtn.addEventListener('click', () => {
+        isSelectionMode = false;
+        selectedItems.clear();
+        updateSelectionActionBar();
+    });
+
+    batchDeleteBtn.addEventListener('click', () => {
+        if (selectedItems.size === 0) return;
+        
+        openConfirmModal('Delete Selected', `Are you sure you want to delete ${selectedItems.size} items?`, async () => {
+            showLoading();
+            let successCount = 0;
+            
+            for (const [name, file] of selectedItems.entries()) {
+                const targetPath = currentPath ? `${currentPath}/${name}` : name;
+                try {
+                    const res = await apiFetch(`/delete`, {
+                        method: 'POST',
+                        body: JSON.stringify({ path: targetPath })
+                    });
+                    if (res) successCount++;
+                } catch (e) {
+                    console.error("Failed to delete", name, e);
+                }
+            }
+            
+            isSelectionMode = false;
+            selectedItems.clear();
+            updateSelectionActionBar();
+            
+            if (typeof showToast === 'function') {
+                showToast(`Deleted ${successCount} items`);
+            }
+            
+            fetchFiles();
+        });
+    });
+
+    batchDownloadBtn.addEventListener('click', async () => {
+        if (selectedItems.size === 0) return;
+        
+        // Browsers might block multiple simultaneous downloads if not triggered by user directly,
+        // but since this is in a click handler, the first one usually works and subsequent ones might prompt.
+        let delay = 0;
+        for (const [name, file] of selectedItems.entries()) {
+            if (!file.isDirectory) {
+                const targetPath = currentPath ? `${currentPath}/${name}` : name;
+                const downloadUrl = `${API_BASE}/download?path=${encodeURIComponent(targetPath)}&token=${authToken}`;
+                
+                setTimeout(() => {
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }, delay);
+                
+                delay += 500; // stagger downloads slightly to prevent browser blocking
+            }
+        }
+        
+        isSelectionMode = false;
+        selectedItems.clear();
+        updateSelectionActionBar();
+    });
+
+    // Initialize App
     if (authToken) {
         showApp();
     } else {
@@ -576,6 +666,55 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // End Functions
+    function updateSelectionActionBar() {
+        if (!isSelectionMode || selectedItems.size === 0) {
+            selectionActionBar.classList.add('hidden');
+            document.body.classList.remove('selection-mode');
+            isSelectionMode = false;
+            selectedItems.clear();
+            // Deselect all visually
+            document.querySelectorAll('.item-card.selected').forEach(c => c.classList.remove('selected'));
+            return;
+        }
+
+        selectionActionBar.classList.remove('hidden');
+        document.body.classList.add('selection-mode');
+        selectionCount.textContent = `${selectedItems.size} selected`;
+
+        // Check if any folders are selected
+        let hasFolders = false;
+        for (const [name, file] of selectedItems.entries()) {
+            if (file.isDirectory) {
+                hasFolders = true;
+                break;
+            }
+        }
+        
+        if (hasFolders) {
+            batchDownloadBtn.style.display = 'none';
+        } else {
+            batchDownloadBtn.style.display = 'flex';
+        }
+    }
+
+    function toggleSelection(file, cardElement) {
+        if (selectedItems.has(file.name)) {
+            selectedItems.delete(file.name);
+            cardElement.classList.remove('selected');
+        } else {
+            selectedItems.set(file.name, file);
+            cardElement.classList.add('selected');
+        }
+        
+        if (selectedItems.size === 0) {
+            isSelectionMode = false;
+        } else {
+            isSelectionMode = true;
+        }
+        
+        updateSelectionActionBar();
+    }
+
     function renderGridItems(files) {
         fileGrid.innerHTML = '';
         if (files.length === 0) {
@@ -626,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateStr = formatDate(file.createdAt);
 
             card.innerHTML = `
+                <div class="selection-checkbox"></div>
                 <div class="card-icon-wrapper">
                     ${iconOrThumbnail}
                 </div>
@@ -638,19 +778,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
+            // Restore selection state if we are re-rendering during selection mode
+            if (selectedItems.has(file.name)) {
+                card.classList.add('selected');
+            }
+
             // Handle More button
             const moreBtn = card.querySelector('.more-btn');
             moreBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (isSelectionMode) return; // Disable more button in selection mode
                 openBottomSheet(file);
             });
 
+            // Touch support for long press
+            let pressTimer;
+            
+            card.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 1) return; // Ignore multi-touch
+                pressTimer = setTimeout(() => {
+                    if (!isSelectionMode) {
+                        isSelectionMode = true;
+                        toggleSelection(file, card);
+                    }
+                }, 500); // 500ms for long press
+            }, { passive: true });
+            
+            card.addEventListener('touchend', () => {
+                clearTimeout(pressTimer);
+            });
+            card.addEventListener('touchmove', () => {
+                clearTimeout(pressTimer);
+            });
+
             // Handle Card Click
-            card.addEventListener('click', () => {
+            card.addEventListener('click', (e) => {
+                // If checkbox clicked or ctrl/shift held, or already in selection mode
+                if (e.target.closest('.selection-checkbox') || e.ctrlKey || e.metaKey || isSelectionMode) {
+                    isSelectionMode = true;
+                    toggleSelection(file, card);
+                    return;
+                }
+
                 if (file.isDirectory) {
                     currentPath = currentPath ? `${currentPath}/${file.name}` : file.name;
                     history.pushState({ path: currentPath }, '');
                     searchInput.value = ''; // clear search on navigate
+                    
+                    // Clear selection on navigate
+                    isSelectionMode = false;
+                    selectedItems.clear();
+                    updateSelectionActionBar();
+                    
                     fetchFiles();
                 } else {
                     previewFile(file.name);

@@ -157,6 +157,18 @@
                 </div>
             </div>
         </main>
+        
+        <!-- Selection Action Bar -->
+        <div id="selection-action-bar" class="selection-action-bar hidden">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="icon-btn action-bar-btn" id="cancel-selection-btn" style="border-radius: 50%;"><i class="ph ph-x"></i></button>
+                <span id="selection-count" style="font-weight: 600;">1 selected</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn" id="batch-download-btn" style="display: flex; align-items: center; gap: 0.25rem;"><i class="ph ph-download-simple"></i> Download</button>
+                <button class="btn" id="batch-delete-btn" style="background: var(--danger-color); color: white; border: none; display: flex; align-items: center; gap: 0.25rem;"><i class="ph ph-trash"></i> Delete</button>
+            </div>
+        </div>
     </div>
 
     <!-- Bottom Navigation for Mobile -->
