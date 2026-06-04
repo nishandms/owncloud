@@ -16,6 +16,7 @@ const path = require('path');
 const https = require('https');
 const { Bonjour } = require('bonjour-service');
 const crypto = require('crypto');
+const os = require('os');
 
 const app = express();
 const PORT = 8443;
@@ -93,6 +94,22 @@ function getUserStorageFolder(username) {
   }
   return userFolder;
 }
+
+function getLocalIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
+
+app.get('/api/server-ip', (req, res) => {
+  res.json({ ip: getLocalIp(), port: PORT });
+});
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;

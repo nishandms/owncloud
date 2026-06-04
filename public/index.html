@@ -56,9 +56,11 @@
     <div class="app-wrapper hidden" id="app-wrapper">
         <!-- Header -->
         <header class="app-header">
-            <button class="menu-btn icon-btn"><i class="ph ph-list"></i></button>
             <h1 class="header-title" id="current-path-display">Storage</h1>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn secondary-btn" id="header-network-toggle" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-full); display: flex; align-items: center; gap: 0.25rem;">
+                    <i class="ph ph-wifi-high"></i> <span id="header-network-text">Public Mode</span>
+                </button>
                 <button class="icon-btn action-btn" id="header-theme-toggle" aria-label="Toggle Theme">
                     <i class="ph ph-moon"></i>
                 </button>

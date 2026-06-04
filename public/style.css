@@ -171,6 +171,12 @@ body {
     flex-grow: 1;
 }
 
+@media (max-width: 768px) {
+    .header-title {
+        text-align: left;
+    }
+}
+
 .avatar img {
     width: 32px;
     height: 32px;

@@ -92,6 +92,48 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sidebarThemeBtn) sidebarThemeBtn.addEventListener('click', toggleTheme);
     if (headerThemeBtn) headerThemeBtn.addEventListener('click', toggleTheme);
     
+    // Network Mode Management
+    const networkToggle = document.getElementById('header-network-toggle');
+    const networkModeText = document.getElementById('header-network-text');
+    
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname.match(/^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/);
+    
+    if (networkModeText) {
+        networkModeText.textContent = isLocal ? 'Local Mode' : 'Public Mode';
+    }
+
+    if (networkToggle) {
+        networkToggle.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (isLocal) {
+                const publicUrl = localStorage.getItem('owncloud_public_url');
+                if (publicUrl) {
+                    window.location.href = publicUrl;
+                } else {
+                    if (typeof openAlertModal === 'function') openAlertModal("Info", "You are already connected via Local network.");
+                }
+                return;
+            }
+
+            try {
+                networkToggle.style.opacity = '0.5';
+                const res = await fetch(`${API_BASE}/server-ip`);
+                const data = await res.json();
+                if (data.ip) {
+                    const localUrl = `https://${data.ip}:${data.port}`;
+                    localStorage.setItem('owncloud_public_url', window.location.href);
+                    window.location.href = localUrl;
+                } else {
+                    if (typeof openAlertModal === 'function') openAlertModal("Error", "Could not get local IP.");
+                }
+            } catch (err) {
+                if (typeof openAlertModal === 'function') openAlertModal("Error", "Failed to get server IP.");
+            } finally {
+                networkToggle.style.opacity = '1';
+            }
+        });
+    }
+    
     // Auth State
     let authToken = localStorage.getItem('owncloud_token');
     const loginScreen = document.getElementById('login-screen');
