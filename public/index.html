@@ -4,16 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cloud</title>
+    <title>J.A.R.V.I.S. SYSTEM</title>
 
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#09090b">
+    <meta name="theme-color" content="#020813">
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="apple-touch-icon" href="icon.svg">
 
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 
@@ -23,9 +23,12 @@
     <div id="login-screen" class="login-overlay">
         <div class="login-box">
             <div class="login-header">
-                <i class="ph ph-cloud-lock"></i>
-                <h2>OwnCloud</h2>
-                <p>Enter your credentials to access your secure storage.</p>
+                <div class="arc-core-login">
+                    <div class="arc-ring"></div>
+                    <div class="arc-center"></div>
+                </div>
+                <h2 style="font-family: 'Orbitron', sans-serif; letter-spacing: 2px; color: var(--accent-color); text-shadow: 0 0 10px var(--accent-color);">J.A.R.V.I.S.</h2>
+                <p style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px;">Awaiting Authorization Sequence...</p>
             </div>
             <form id="login-form">
                 <input type="text" id="login-username" placeholder="Username" required autocomplete="username"
@@ -43,28 +46,28 @@
 
     <aside class="sidebar hidden" id="sidebar">
         <div class="sidebar-logo">
-            <i class="ph ph-cloud"></i>
-            <h2>Storage</h2>
+            <i class="ph ph-cpu"></i>
+            <h2 style="font-family: 'Orbitron', sans-serif;">J.A.R.V.I.S.</h2>
         </div>
         <nav class="sidebar-nav">
-            <a href="#" id="sidebar-cloud-btn" class="active"><i class="ph ph-cloud"></i> My Cloud</a>
-            <a href="#" id="sidebar-users-btn" class="admin-only hidden"><i class="ph ph-users-three"></i> Users</a>
-            <a href="#" id="sidebar-theme-toggle" style="margin-top: auto;"><i class="ph ph-moon"></i> Theme</a>
+            <a href="#" id="sidebar-cloud-btn" class="active"><i class="ph ph-hard-drives"></i> Main Core</a>
+            <a href="#" id="sidebar-users-btn" class="admin-only hidden"><i class="ph ph-users-three"></i> Protocols</a>
+            <a href="#" id="sidebar-theme-toggle" class="hidden" style="margin-top: auto;"><i class="ph ph-moon"></i> Theme</a>
         </nav>
     </aside>
 
     <div class="app-wrapper hidden" id="app-wrapper">
         <!-- Header -->
         <header class="app-header">
-            <h1 class="header-title" id="current-path-display">Storage</h1>
+            <h1 class="header-title" id="current-path-display" style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">SYSTEM CORE</h1>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <button class="btn secondary-btn" id="header-network-toggle" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-full); display: flex; align-items: center; gap: 0.25rem;">
-                    <i class="ph ph-wifi-high"></i> <span id="header-network-text">Public Mode</span>
+                <button class="btn secondary-btn" id="header-network-toggle" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.25rem; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;">
+                    <i class="ph ph-wifi-high"></i> <span id="header-network-text">STARK GLOBAL</span>
                 </button>
-                <button class="icon-btn action-btn" id="header-theme-toggle" aria-label="Toggle Theme">
+                <button class="icon-btn action-btn hidden" id="header-theme-toggle" aria-label="Toggle Theme">
                     <i class="ph ph-moon"></i>
                 </button>
-                <div class="avatar" id="header-logout-btn" style="cursor: pointer;" title="Logout">
+                <div class="avatar hud-avatar" id="header-logout-btn" style="cursor: pointer;" title="Logout">
                     <img src="https://i.pravatar.cc/100?img=33" alt="Profile">
                 </div>
             </div>
@@ -82,7 +85,7 @@
 
                 <!-- Storage Widget -->
                 <div class="section-header">
-                    <h2>Storage</h2>
+                    <h2 style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">DATA MATRIX</h2>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i
                                 class="ph ph-upload-simple"></i></button>
@@ -93,10 +96,10 @@
                     </div>
                 </div>
 
-                <div class="storage-widget">
-                    <div class="storage-info">
-                        <h3>Storage Usage</h3>
-                        <p id="storage-text">Used 5.0 GB / 10.0 GB Total (50%)</p>
+                <div class="storage-widget hud-container">
+                    <div class="storage-info" style="flex-grow: 1;">
+                        <h3 style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 2px;">Core Capacity</h3>
+                        <p id="storage-text" style="font-family: 'Orbitron', monospace; color: var(--accent-color);">Used 5.0 GB / 10.0 GB Total (50%)</p>
                         <p id="network-text"
                             style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
                             <i class="ph ph-arrow-down" style="color: var(--primary-color);"></i> <span id="rx-speed">0
@@ -107,27 +110,20 @@
                         </p>
                     </div>
 
-                    <div class="water-wrapper" style="height: 50%;">
-                        <svg class="waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 24 150 28"
-                            preserveAspectRatio="none" shape-rendering="auto">
-                            <defs>
-                                <path id="gentle-wave"
-                                    d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v44h-352z" />
-                            </defs>
-                            <g class="parallax">
-                                <use href="#gentle-wave" x="48" y="0" />
-                                <use href="#gentle-wave" x="48" y="3" />
-                                <use href="#gentle-wave" x="48" y="5" />
-                                <use href="#gentle-wave" x="48" y="7" />
-                            </g>
-                        </svg>
-                        <div class="water-solid"></div>
+                    <div class="arc-reactor-container">
+                        <div class="arc-reactor">
+                            <div class="reactor-ring outer-ring"></div>
+                            <div class="reactor-ring middle-ring"></div>
+                            <div class="reactor-core">
+                                <div class="core-glow"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Files Grid -->
                 <div class="section-header">
-                    <h2>Last Used</h2>
+                    <h2 style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">RECENT NODES</h2>
                     <button class="icon-btn action-btn hidden" id="back-btn"><i class="ph ph-caret-left"></i>
                         Back</button>
                 </div>
@@ -144,7 +140,7 @@
             <!-- Users Section -->
             <div id="users-section" class="hidden">
                 <div class="section-header">
-                    <h2>User Management</h2>
+                    <h2 style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">AUTHORIZATION PROTOCOLS</h2>
                     <button class="btn primary-btn" id="create-user-modal-btn"
                         style="display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); padding: 0.5rem 1.25rem;">
                         <i class="ph ph-user-plus" style="font-size: 1.1rem;"></i>
@@ -174,12 +170,12 @@
     <!-- Bottom Navigation for Mobile -->
     <nav class="bottom-nav hidden" id="bottom-nav">
         <a href="#" id="bottom-cloud-btn" class="active">
-            <i class="ph ph-cloud"></i>
-            <span>My Cloud</span>
+            <i class="ph ph-hard-drives"></i>
+            <span>Core</span>
         </a>
         <a href="#" id="bottom-users-btn" class="admin-only hidden">
             <i class="ph ph-users-three"></i>
-            <span>Users</span>
+            <span>Protocols</span>
         </a>
     </nav>
 

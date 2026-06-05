@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (networkModeText) {
         // Show current mode, or an action
-        networkModeText.textContent = isLocal ? 'Switch to Public' : 'Switch to Local';
+        networkModeText.textContent = isLocal ? 'STARK GLOBAL' : 'JARVIS HOME';
     }
 
     if (networkToggle) {
@@ -183,9 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const [name, file] of selectedItems.entries()) {
                 const targetPath = currentPath ? `${currentPath}/${name}` : name;
                 try {
-                    const res = await apiFetch(`/delete`, {
-                        method: 'POST',
-                        body: JSON.stringify({ path: targetPath })
+                    const res = await apiFetch(`${API_BASE}/delete?path=${encodeURIComponent(targetPath)}`, {
+                        method: 'DELETE'
                     });
                     if (res) successCount++;
                 } catch (e) {
