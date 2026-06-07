@@ -292,7 +292,8 @@ body {
     gap: 1rem;
     box-shadow: var(--shadow-sm);
     margin-bottom: 2rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow: hidden;
     transition: background-color 0.3s ease;
 }
 
@@ -354,6 +355,9 @@ body {
     gap: 0.5rem;
     cursor: pointer;
     position: relative;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .card-icon-wrapper {
@@ -435,7 +439,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--surface-color);
+    background: #020c1be0;
     display: flex;
     justify-content: space-around;
     padding: 0.75rem 0;
@@ -470,7 +474,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: #020c1be0;
     z-index: 100;
     display: flex;
     align-items: flex-end;
@@ -1033,6 +1037,19 @@ body.selection-mode .item-card .selection-checkbox {
     opacity: 0.5;
 }
 
+.bg-arc-reactor-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(4);
+    z-index: 0;
+    opacity: 0.15;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .arc-reactor-container {
     display: flex;
     justify-content: center;
@@ -1040,6 +1057,15 @@ body.selection-mode .item-card .selection-checkbox {
     width: 120px;
     height: 120px;
     position: relative;
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .arc-reactor-container {
+        transform: scale(0.65);
+        transform-origin: right center;
+        margin-right: -10px;
+    }
 }
 
 .arc-reactor {

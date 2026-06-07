@@ -809,6 +809,11 @@ document.addEventListener('DOMContentLoaded', () => {
             card.addEventListener('touchmove', () => {
                 clearTimeout(pressTimer);
             });
+            
+            // Prevent default context menu on long press
+            card.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
 
             // Handle Card Click
             card.addEventListener('click', (e) => {
