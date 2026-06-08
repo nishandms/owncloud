@@ -635,7 +635,7 @@ app.post('/api/ai/chat', authenticateToken, (req, res) => {
       { role: 'system', content: 'You are J.A.R.V.I.S., a highly advanced AI assistant. Your responses should be concise, helpful, and somewhat formal, fitting the persona of Tony Stark\'s AI.' },
       { role: 'user', content: userMessage }
     ],
-    stream: false
+    stream: true
   });
 
   try {
@@ -654,22 +654,14 @@ app.post('/api/ai/chat', authenticateToken, (req, res) => {
     };
 
     const aiReq = protocolModule.request(options, (aiRes) => {
-      let data = '';
-      aiRes.on('data', (chunk) => { data += chunk; });
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Transfer-Encoding', 'chunked');
+      
+      aiRes.on('data', (chunk) => {
+        res.write(chunk);
+      });
       aiRes.on('end', () => {
-        try {
-          const response = JSON.parse(data);
-          let reply = 'I am unable to process the response at this time.';
-          if (response.message && response.message.content) {
-            reply = response.message.content;
-          } else if (response.response) { // fallback for /api/generate
-            reply = response.response;
-          }
-          res.json({ reply: reply });
-        } catch (err) {
-          console.error('AI Proxy Parse Error:', err);
-          res.status(500).json({ error: 'Failed to parse AI response' });
-        }
+        res.end();
       });
     });
 

@@ -1420,13 +1420,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message })
                 });
-                const data = await res.json();
+                
                 typingDiv.remove();
-                if (res.ok) {
-                    appendMessage(data.reply || 'No response', false);
-                } else {
+                
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
                     appendMessage('Error: ' + (data.error || 'Failed to get response'), false);
+                    return;
                 }
+
+                // Create container for streaming response
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message ai-message';
+                msgDiv.innerHTML = `
+                    <div class="message-avatar"><i class="ph ph-robot"></i></div>
+                    <div class="message-content"></div>
+                `;
+                chatMessages.appendChild(msgDiv);
+                const contentDiv = msgDiv.querySelector('.message-content');
+                
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep the last partial line in buffer
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const parsed = JSON.parse(line);
+                            if (parsed.message && parsed.message.content) {
+                                contentDiv.innerHTML += parsed.message.content.replace(/\n/g, '<br>');
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            } else if (parsed.response) {
+                                contentDiv.innerHTML += parsed.response.replace(/\n/g, '<br>');
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+                        } catch (e) {
+                            // ignore parse errors for partial chunks
+                        }
+                    }
+                }
+                
+                if (buffer.trim()) {
+                    try {
+                        const parsed = JSON.parse(buffer);
+                        if (parsed.message && parsed.message.content) {
+                            contentDiv.innerHTML += parsed.message.content.replace(/\n/g, '<br>');
+                        } else if (parsed.response) {
+                            contentDiv.innerHTML += parsed.response.replace(/\n/g, '<br>');
+                        }
+                    } catch (e) {}
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
             } catch (err) {
                 typingDiv.remove();
                 appendMessage('Error: Connection to J.A.R.V.I.S. core failed.', false);
