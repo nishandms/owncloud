@@ -17,6 +17,19 @@ const https = require('https');
 const { Bonjour } = require('bonjour-service');
 const crypto = require('crypto');
 const os = require('os');
+const { URL } = require('url');
+
+// Parse .env file manually if it exists
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envConfig = fs.readFileSync(envPath, 'utf8');
+  envConfig.split('\n').forEach(line => {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match) {
+      process.env[match[1].trim()] = match[2].trim();
+    }
+  });
+}
 
 const app = express();
 const PORT = 8443;
@@ -603,6 +616,73 @@ app.get('/api/public/share/:shareId/download', validateShare, (req, res) => {
     res.download(fullPath);
   } else {
     res.sendFile(fullPath);
+  }
+});
+
+// API: AI Chat Proxy
+app.post('/api/ai/chat', authenticateToken, (req, res) => {
+  const aiUrl = process.env.AI_API_URL || 'http://127.0.0.1:11434/api/chat';
+  const aiModel = process.env.AI_MODEL || 'qwen2.5:0.b';
+  
+  const userMessage = req.body.message;
+  if (!userMessage) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  const payload = JSON.stringify({
+    model: aiModel,
+    messages: [
+      { role: 'system', content: 'You are J.A.R.V.I.S., a highly advanced AI assistant. Your responses should be concise, helpful, and somewhat formal, fitting the persona of Tony Stark\'s AI.' },
+      { role: 'user', content: userMessage }
+    ],
+    stream: false
+  });
+
+  try {
+    const parsedUrl = new URL(aiUrl);
+    const protocolModule = parsedUrl.protocol === 'https:' ? https : require('http');
+    
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port,
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+
+    const aiReq = protocolModule.request(options, (aiRes) => {
+      let data = '';
+      aiRes.on('data', (chunk) => { data += chunk; });
+      aiRes.on('end', () => {
+        try {
+          const response = JSON.parse(data);
+          let reply = 'I am unable to process the response at this time.';
+          if (response.message && response.message.content) {
+            reply = response.message.content;
+          } else if (response.response) { // fallback for /api/generate
+            reply = response.response;
+          }
+          res.json({ reply: reply });
+        } catch (err) {
+          console.error('AI Proxy Parse Error:', err);
+          res.status(500).json({ error: 'Failed to parse AI response' });
+        }
+      });
+    });
+
+    aiReq.on('error', (err) => {
+      console.error('AI Proxy Request Error:', err);
+      res.status(500).json({ error: 'Could not reach AI backend' });
+    });
+
+    aiReq.write(payload);
+    aiReq.end();
+  } catch (err) {
+    console.error('AI Setup Error:', err);
+    res.status(500).json({ error: 'Invalid AI URL Configuration' });
   }
 });
 

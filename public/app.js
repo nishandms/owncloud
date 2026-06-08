@@ -1170,32 +1170,55 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchTab(tab) {
         const cloudBtnSidebar = document.getElementById('sidebar-cloud-btn');
         const usersBtnSidebar = document.getElementById('sidebar-users-btn');
+        const aiBtnSidebar = document.getElementById('sidebar-ai-btn');
         const cloudBtnBottom = document.getElementById('bottom-cloud-btn');
         const usersBtnBottom = document.getElementById('bottom-users-btn');
+        const aiBtnBottom = document.getElementById('bottom-ai-btn');
         
         const cloudSection = document.getElementById('cloud-section');
         const usersSection = document.getElementById('users-section');
+        const aiSection = document.getElementById('ai-section');
         
         if (tab === 'cloud') {
             if (cloudSection) cloudSection.classList.remove('hidden');
             if (usersSection) usersSection.classList.add('hidden');
+            if (aiSection) aiSection.classList.add('hidden');
             
             if (cloudBtnSidebar) cloudBtnSidebar.classList.add('active');
             if (usersBtnSidebar) usersBtnSidebar.classList.remove('active');
+            if (aiBtnSidebar) aiBtnSidebar.classList.remove('active');
             if (cloudBtnBottom) cloudBtnBottom.classList.add('active');
             if (usersBtnBottom) usersBtnBottom.classList.remove('active');
+            if (aiBtnBottom) aiBtnBottom.classList.remove('active');
             
             fetchFiles();
         } else if (tab === 'users') {
             if (cloudSection) cloudSection.classList.add('hidden');
             if (usersSection) usersSection.classList.remove('hidden');
+            if (aiSection) aiSection.classList.add('hidden');
             
             if (cloudBtnSidebar) cloudBtnSidebar.classList.remove('active');
             if (usersBtnSidebar) usersBtnSidebar.classList.add('active');
+            if (aiBtnSidebar) aiBtnSidebar.classList.remove('active');
             if (cloudBtnBottom) cloudBtnBottom.classList.remove('active');
             if (usersBtnBottom) usersBtnBottom.classList.add('active');
+            if (aiBtnBottom) aiBtnBottom.classList.remove('active');
             
             fetchUsers();
+        } else if (tab === 'ai') {
+            if (cloudSection) cloudSection.classList.add('hidden');
+            if (usersSection) usersSection.classList.add('hidden');
+            if (aiSection) aiSection.classList.remove('hidden');
+            
+            if (cloudBtnSidebar) cloudBtnSidebar.classList.remove('active');
+            if (usersBtnSidebar) usersBtnSidebar.classList.remove('active');
+            if (aiBtnSidebar) aiBtnSidebar.classList.add('active');
+            if (cloudBtnBottom) cloudBtnBottom.classList.remove('active');
+            if (usersBtnBottom) usersBtnBottom.classList.remove('active');
+            if (aiBtnBottom) aiBtnBottom.classList.add('active');
+            
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) chatInput.focus();
         }
     }
 
@@ -1346,11 +1369,73 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Listeners
     const cloudBtnSidebar = document.getElementById('sidebar-cloud-btn');
     const usersBtnSidebar = document.getElementById('sidebar-users-btn');
+    const aiBtnSidebar = document.getElementById('sidebar-ai-btn');
     const cloudBtnBottom = document.getElementById('bottom-cloud-btn');
     const usersBtnBottom = document.getElementById('bottom-users-btn');
+    const aiBtnBottom = document.getElementById('bottom-ai-btn');
 
     if (cloudBtnSidebar) cloudBtnSidebar.addEventListener('click', (e) => { e.preventDefault(); switchTab('cloud'); });
     if (usersBtnSidebar) usersBtnSidebar.addEventListener('click', (e) => { e.preventDefault(); switchTab('users'); });
+    if (aiBtnSidebar) aiBtnSidebar.addEventListener('click', (e) => { e.preventDefault(); switchTab('ai'); });
     if (cloudBtnBottom) cloudBtnBottom.addEventListener('click', (e) => { e.preventDefault(); switchTab('cloud'); });
     if (usersBtnBottom) usersBtnBottom.addEventListener('click', (e) => { e.preventDefault(); switchTab('users'); });
+    if (aiBtnBottom) aiBtnBottom.addEventListener('click', (e) => { e.preventDefault(); switchTab('ai'); });
+
+    // AI Chat Logic
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    const chatMessages = document.getElementById('chat-messages');
+
+    if (chatSendBtn && chatInput && chatMessages) {
+        const appendMessage = (content, isUser) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            msgDiv.innerHTML = `
+                <div class="message-avatar"><i class="ph ${isUser ? 'ph-user' : 'ph-robot'}"></i></div>
+                <div class="message-content">${content.replace(/\n/g, '<br>')}</div>
+            `;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+
+        const sendChatMessage = async () => {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            chatInput.value = '';
+            appendMessage(message, true);
+            
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai-message typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="message-avatar"><i class="ph ph-robot"></i></div>
+                <div class="message-content"><i class="ph ph-spinner ph-spin"></i> Processing...</div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const res = await apiFetch(`${API_BASE}/ai/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await res.json();
+                typingDiv.remove();
+                if (res.ok) {
+                    appendMessage(data.reply || 'No response', false);
+                } else {
+                    appendMessage('Error: ' + (data.error || 'Failed to get response'), false);
+                }
+            } catch (err) {
+                typingDiv.remove();
+                appendMessage('Error: Connection to J.A.R.V.I.S. core failed.', false);
+            }
+        };
+
+        chatSendBtn.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+    }
 });
