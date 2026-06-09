@@ -179,8 +179,11 @@
                         </div>
                     </div>
                     
-                    <div class="chat-input-area" style="padding: 1rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.3); display: flex; gap: 0.5rem; align-items: center;">
+                    <div class="chat-input-area" style="padding: 1rem; border-top: 1px solid var(--border-color); background: rgba(0,0,0,0.3); display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0;">
                         <input type="text" id="chat-input" placeholder="Enter directive..." autocomplete="off" style="flex-grow: 1; border-radius: var(--radius-full); padding: 0.75rem 1.25rem;">
+                        <button class="btn secondary-btn" id="voice-input-btn" aria-label="Voice Input" style="border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; background: rgba(0, 243, 255, 0.1);">
+                            <i class="ph ph-microphone" style="font-size: 1.2rem; color: var(--accent-color);"></i>
+                        </button>
                         <button class="btn primary-btn" id="chat-send-btn" style="border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0;">
                             <i class="ph ph-paper-plane-right" style="font-size: 1.2rem;"></i>
                         </button>

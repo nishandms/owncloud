@@ -1391,8 +1391,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chat-input');
     const chatSendBtn = document.getElementById('chat-send-btn');
     const chatMessages = document.getElementById('chat-messages');
+    const voiceInputBtn = document.getElementById('voice-input-btn');
+    
+    let wasVoiceInitiated = false;
 
     if (chatSendBtn && chatInput && chatMessages) {
+        
+        // Voice Input Logic
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let isVoiceModeActive = false;
+        let isProcessingResponse = false;
+        let isSynthesizing = false;
+        let recognition = null;
+        let resetVoiceBtn = () => {};
+
+        if (SpeechRecognition && voiceInputBtn) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            resetVoiceBtn = () => {
+                if (!isVoiceModeActive) {
+                    voiceInputBtn.innerHTML = '<i class="ph ph-microphone" style="font-size: 1.2rem; color: var(--accent-color);"></i>';
+                    voiceInputBtn.style.animation = '';
+                } else if (isProcessingResponse || isSynthesizing) {
+                    voiceInputBtn.innerHTML = '<i class="ph-fill ph-microphone-stage" style="font-size: 1.2rem; color: var(--accent-color);"></i>';
+                    voiceInputBtn.style.animation = '';
+                } else {
+                    voiceInputBtn.innerHTML = '<i class="ph-fill ph-microphone" style="font-size: 1.2rem; color: var(--danger-color);"></i>';
+                    voiceInputBtn.style.animation = 'pulse 1.5s infinite';
+                }
+            };
+
+            recognition.onstart = () => {
+                resetVoiceBtn();
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                if (finalTranscript.trim()) {
+                    chatInput.value = finalTranscript;
+                    wasVoiceInitiated = true;
+                    try { recognition.stop(); } catch(e){} // Prevent capturing while responding
+                    sendChatMessage();
+                } else if (interimTranscript.trim()) {
+                    chatInput.value = interimTranscript;
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                if (event.error === 'aborted') return; // Ignore intentional stops
+                
+                if (event.error === 'no-speech' && isVoiceModeActive && !isProcessingResponse && !isSynthesizing) {
+                    try { recognition.start(); } catch(e){}
+                } else {
+                    isVoiceModeActive = false;
+                    resetVoiceBtn();
+                }
+            };
+
+            recognition.onend = () => {
+                if (isVoiceModeActive && !isProcessingResponse && !isSynthesizing) {
+                    try { recognition.start(); } catch(e){}
+                }
+                resetVoiceBtn();
+            };
+
+            voiceInputBtn.addEventListener('click', () => {
+                isVoiceModeActive = !isVoiceModeActive;
+                if (isVoiceModeActive) {
+                    window.speechSynthesis.cancel();
+                    try { recognition.start(); } catch(e){}
+                } else {
+                    window.speechSynthesis.cancel();
+                    isSynthesizing = false;
+                    try { recognition.stop(); } catch(e){}
+                }
+                resetVoiceBtn();
+            });
+        } else if (voiceInputBtn) {
+            voiceInputBtn.style.display = 'none';
+        }
+
         const appendMessage = (content, isUser) => {
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
@@ -1402,6 +1494,45 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             chatMessages.appendChild(msgDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        };
+
+        const speakAndRestart = (textToSpeak) => {
+            isProcessingResponse = false;
+            
+            if (isVoiceModeActive || wasVoiceInitiated) {
+                isSynthesizing = true;
+                resetVoiceBtn();
+                
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                const voices = window.speechSynthesis.getVoices();
+                const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+                const maleVoice = englishVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('guy') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('mark') || v.name.toLowerCase().includes('jarvis'));
+                if (maleVoice) utterance.voice = maleVoice;
+                
+                utterance.pitch = 0.8;
+                utterance.rate = 1.05;
+                
+                const onSpeechEnd = () => {
+                    isSynthesizing = false;
+                    if (isVoiceModeActive && recognition) {
+                        try { recognition.start(); } catch(e){}
+                    }
+                    resetVoiceBtn();
+                    window.jarvisUtterance = null; // Clear reference
+                };
+                
+                utterance.onend = onSpeechEnd;
+                utterance.onerror = onSpeechEnd;
+                
+                window.jarvisUtterance = utterance; // Prevent garbage collection
+                window.speechSynthesis.speak(utterance);
+                wasVoiceInitiated = false;
+            } else {
+                if (isVoiceModeActive && recognition) {
+                    try { recognition.start(); } catch(e){}
+                }
+                resetVoiceBtn();
+            }
         };
 
         const sendChatMessage = async () => {
@@ -1420,6 +1551,9 @@ document.addEventListener('DOMContentLoaded', () => {
             chatMessages.appendChild(typingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
+            isProcessingResponse = true;
+            resetVoiceBtn();
+
             try {
                 const res = await apiFetch(`${API_BASE}/ai/chat`, {
                     method: 'POST',
@@ -1431,7 +1565,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
-                    appendMessage('Error: ' + (data.error || 'Failed to get response'), false);
+                    const errMsg = 'Error: ' + (data.error || 'Failed to get response');
+                    appendMessage(errMsg, false);
+                    speakAndRestart(errMsg);
                     return;
                 }
 
@@ -1448,6 +1584,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder('utf-8');
                 let buffer = '';
+                let fullPlainText = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -1461,11 +1598,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!line.trim()) continue;
                         try {
                             const parsed = JSON.parse(line);
+                            let textChunk = '';
                             if (parsed.message && parsed.message.content) {
-                                contentDiv.innerHTML += parsed.message.content.replace(/\n/g, '<br>');
-                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                                textChunk = parsed.message.content;
                             } else if (parsed.response) {
-                                contentDiv.innerHTML += parsed.response.replace(/\n/g, '<br>');
+                                textChunk = parsed.response;
+                            }
+                            if (textChunk) {
+                                fullPlainText += textChunk;
+                                contentDiv.innerHTML += textChunk.replace(/\n/g, '<br>');
                                 chatMessages.scrollTop = chatMessages.scrollHeight;
                             }
                         } catch (e) {
@@ -1477,18 +1618,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (buffer.trim()) {
                     try {
                         const parsed = JSON.parse(buffer);
+                        let textChunk = '';
                         if (parsed.message && parsed.message.content) {
-                            contentDiv.innerHTML += parsed.message.content.replace(/\n/g, '<br>');
+                            textChunk = parsed.message.content;
                         } else if (parsed.response) {
-                            contentDiv.innerHTML += parsed.response.replace(/\n/g, '<br>');
+                            textChunk = parsed.response;
+                        }
+                        if (textChunk) {
+                            fullPlainText += textChunk;
+                            contentDiv.innerHTML += textChunk.replace(/\n/g, '<br>');
                         }
                     } catch (e) {}
                 }
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+                speakAndRestart(fullPlainText || 'Response completed.');
 
             } catch (err) {
                 typingDiv.remove();
-                appendMessage('Error: Connection to J.A.R.V.I.S. core failed.', false);
+                const errMsg = 'Error: Connection to J.A.R.V.I.S. core failed.';
+                appendMessage(errMsg, false);
+                speakAndRestart(errMsg);
             }
         };
 
