@@ -192,9 +192,43 @@ body {
     width: 100%;
 }
 
+body.ai-mode {
+    overflow: hidden;
+    height: 100dvh;
+    min-height: 100dvh;
+}
+
+body.ai-mode .app-wrapper {
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.main-content.ai-mode {
+    max-width: 100%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    padding-bottom: 5rem; /* slightly less bottom padding for chat */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .main-content.ai-mode {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 2rem;
+    }
+}
+
 @media (max-width: 400px) {
     .main-content {
         padding: 0 1rem 6rem 1rem;
+    }
+    .main-content.ai-mode {
+        padding-left: 0;
+        padding-right: 0;
     }
 }
 

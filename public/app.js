@@ -1183,6 +1183,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cloudSection) cloudSection.classList.remove('hidden');
             if (usersSection) usersSection.classList.add('hidden');
             if (aiSection) aiSection.classList.add('hidden');
+            document.querySelector('.main-content').classList.remove('ai-mode');
+            document.body.classList.remove('ai-mode');
             
             if (cloudBtnSidebar) cloudBtnSidebar.classList.add('active');
             if (usersBtnSidebar) usersBtnSidebar.classList.remove('active');
@@ -1196,6 +1198,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cloudSection) cloudSection.classList.add('hidden');
             if (usersSection) usersSection.classList.remove('hidden');
             if (aiSection) aiSection.classList.add('hidden');
+            document.querySelector('.main-content').classList.remove('ai-mode');
+            document.body.classList.remove('ai-mode');
             
             if (cloudBtnSidebar) cloudBtnSidebar.classList.remove('active');
             if (usersBtnSidebar) usersBtnSidebar.classList.add('active');
@@ -1209,6 +1213,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cloudSection) cloudSection.classList.add('hidden');
             if (usersSection) usersSection.classList.add('hidden');
             if (aiSection) aiSection.classList.remove('hidden');
+            document.querySelector('.main-content').classList.add('ai-mode');
+            document.body.classList.add('ai-mode');
             
             if (cloudBtnSidebar) cloudBtnSidebar.classList.remove('active');
             if (usersBtnSidebar) usersBtnSidebar.classList.remove('active');
