@@ -1404,10 +1404,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let isSynthesizing = false;
         let recognition = null;
         let resetVoiceBtn = () => {};
+        
+        let accumulatedFinal = '';
+        let lastSessionTranscript = '';
+        let voiceInputTimeout = null;
+        const VOICE_SEND_TIMEOUT = 3000;
 
         if (SpeechRecognition && voiceInputBtn) {
             recognition = new SpeechRecognition();
-            recognition.continuous = true;
+            recognition.continuous = false; // Force session boundaries to clear browser memory
             recognition.interimResults = true;
             recognition.lang = 'en-US';
 
@@ -1425,28 +1430,27 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             recognition.onstart = () => {
+                lastSessionTranscript = '';
                 resetVoiceBtn();
             };
 
             recognition.onresult = (event) => {
-                let finalTranscript = '';
-                let interimTranscript = '';
-                
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
+                if (event.results.length > 0) {
+                    // Take the absolute last element to ignore all browser duplication bugs
+                    const lastResult = event.results[event.results.length - 1];
+                    lastSessionTranscript = lastResult[0].transcript.trim();
                 }
                 
-                if (finalTranscript.trim()) {
-                    chatInput.value = finalTranscript;
-                    wasVoiceInitiated = true;
-                    try { recognition.stop(); } catch(e){} // Prevent capturing while responding
-                    sendChatMessage();
-                } else if (interimTranscript.trim()) {
-                    chatInput.value = interimTranscript;
+                chatInput.value = accumulatedFinal + (lastSessionTranscript ? (accumulatedFinal && !accumulatedFinal.endsWith(' ') && !lastSessionTranscript.startsWith(' ') ? ' ' : '') + lastSessionTranscript : '');
+                
+                clearTimeout(voiceInputTimeout);
+                
+                if (chatInput.value.trim()) {
+                    voiceInputTimeout = setTimeout(() => {
+                        wasVoiceInitiated = true;
+                        try { recognition.stop(); } catch(e){}
+                        sendChatMessage();
+                    }, VOICE_SEND_TIMEOUT);
                 }
             };
 
@@ -1463,6 +1467,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             recognition.onend = () => {
+                if (lastSessionTranscript) {
+                    accumulatedFinal += (accumulatedFinal && !accumulatedFinal.endsWith(' ') && !lastSessionTranscript.startsWith(' ') ? ' ' : '') + lastSessionTranscript;
+                    lastSessionTranscript = '';
+                }
+                
                 if (isVoiceModeActive && !isProcessingResponse && !isSynthesizing) {
                     try { recognition.start(); } catch(e){}
                 }
@@ -1472,6 +1481,8 @@ document.addEventListener('DOMContentLoaded', () => {
             voiceInputBtn.addEventListener('click', () => {
                 isVoiceModeActive = !isVoiceModeActive;
                 if (isVoiceModeActive) {
+                    accumulatedFinal = chatInput.value.trim() ? chatInput.value.trim() + ' ' : '';
+                    lastSessionTranscript = '';
                     window.speechSynthesis.cancel();
                     try { recognition.start(); } catch(e){}
                 } else {
@@ -1496,42 +1507,74 @@ document.addEventListener('DOMContentLoaded', () => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         };
 
-        const speakAndRestart = (textToSpeak) => {
-            isProcessingResponse = false;
+        // Streaming Speech Synthesis State
+        let utteranceQueue = [];
+        let isSpeaking = false;
+        let isResponseGenerationComplete = false;
+
+        const processSpeechQueue = () => {
+            if (isSpeaking) return;
             
-            if (isVoiceModeActive || wasVoiceInitiated) {
-                isSynthesizing = true;
-                resetVoiceBtn();
-                
-                const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                const voices = window.speechSynthesis.getVoices();
-                const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-                const maleVoice = englishVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('guy') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('mark') || v.name.toLowerCase().includes('jarvis'));
-                if (maleVoice) utterance.voice = maleVoice;
-                
-                utterance.pitch = 0.8;
-                utterance.rate = 1.05;
-                
-                const onSpeechEnd = () => {
+            if (utteranceQueue.length === 0) {
+                if (isResponseGenerationComplete) {
                     isSynthesizing = false;
+                    isProcessingResponse = false;
                     if (isVoiceModeActive && recognition) {
                         try { recognition.start(); } catch(e){}
                     }
+                    wasVoiceInitiated = false;
                     resetVoiceBtn();
-                    window.jarvisUtterance = null; // Clear reference
-                };
-                
-                utterance.onend = onSpeechEnd;
-                utterance.onerror = onSpeechEnd;
-                
-                window.jarvisUtterance = utterance; // Prevent garbage collection
-                window.speechSynthesis.speak(utterance);
-                wasVoiceInitiated = false;
-            } else {
+                }
+                return;
+            }
+            
+            isSpeaking = true;
+            isSynthesizing = true;
+            resetVoiceBtn();
+            
+            const textToSpeak = utteranceQueue.shift();
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+            const maleVoice = englishVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('guy') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('mark') || v.name.toLowerCase().includes('jarvis'));
+            if (maleVoice) utterance.voice = maleVoice;
+            
+            utterance.pitch = 0.8;
+            utterance.rate = 1.05;
+            
+            const onSpeechEnd = () => {
+                isSpeaking = false;
+                window.jarvisUtterance = null;
+                setTimeout(processSpeechQueue, 150); // Small gap between chunks
+            };
+            
+            utterance.onend = onSpeechEnd;
+            utterance.onerror = onSpeechEnd;
+            
+            window.jarvisUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+        };
+
+        const queueSpeechChunk = (text) => {
+            if (!text.trim()) return;
+            if (isVoiceModeActive || wasVoiceInitiated) {
+                utteranceQueue.push(text);
+                processSpeechQueue();
+            }
+        };
+
+        const speakAndRestart = (textToSpeak) => {
+            isResponseGenerationComplete = true;
+            queueSpeechChunk(textToSpeak);
+            if (!isVoiceModeActive && !wasVoiceInitiated) {
+                isProcessingResponse = false;
+                isSynthesizing = false;
                 if (isVoiceModeActive && recognition) {
                     try { recognition.start(); } catch(e){}
                 }
                 resetVoiceBtn();
+            } else {
+                processSpeechQueue(); // Ensure queue is being processed
             }
         };
 
@@ -1539,6 +1582,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const message = chatInput.value.trim();
             if (!message) return;
             
+            clearTimeout(voiceInputTimeout);
+            accumulatedFinal = '';
+            lastSessionTranscript = '';
             chatInput.value = '';
             appendMessage(message, true);
             
@@ -1552,6 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             isProcessingResponse = true;
+            isResponseGenerationComplete = false;
             resetVoiceBtn();
 
             try {
@@ -1571,7 +1618,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // Create container for streaming response
                 const msgDiv = document.createElement('div');
                 msgDiv.className = 'message ai-message';
                 msgDiv.innerHTML = `
@@ -1585,6 +1631,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const decoder = new TextDecoder('utf-8');
                 let buffer = '';
                 let fullPlainText = '';
+                let speechBuffer = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -1592,7 +1639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
-                    buffer = lines.pop(); // Keep the last partial line in buffer
+                    buffer = lines.pop();
 
                     for (const line of lines) {
                         if (!line.trim()) continue;
@@ -1608,10 +1655,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                 fullPlainText += textChunk;
                                 contentDiv.innerHTML += textChunk.replace(/\n/g, '<br>');
                                 chatMessages.scrollTop = chatMessages.scrollHeight;
+                                
+                                speechBuffer += textChunk;
+                                // Chunk by punctuation or line breaks
+                                let match;
+                                while ((match = speechBuffer.match(/([^.?!,;:\n]+[.?!,;:\n]+)/))) {
+                                    queueSpeechChunk(match[0]);
+                                    speechBuffer = speechBuffer.substring(match.index + match[0].length);
+                                }
                             }
-                        } catch (e) {
-                            // ignore parse errors for partial chunks
-                        }
+                        } catch (e) {}
                     }
                 }
                 
@@ -1627,11 +1680,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (textChunk) {
                             fullPlainText += textChunk;
                             contentDiv.innerHTML += textChunk.replace(/\n/g, '<br>');
+                            speechBuffer += textChunk;
                         }
                     } catch (e) {}
                 }
+                
+                if (speechBuffer.trim()) {
+                    queueSpeechChunk(speechBuffer);
+                }
+                
                 chatMessages.scrollTop = chatMessages.scrollHeight;
-                speakAndRestart(fullPlainText || 'Response completed.');
+                isResponseGenerationComplete = true;
+                processSpeechQueue(); // Trigger in case it was empty
 
             } catch (err) {
                 typingDiv.remove();
