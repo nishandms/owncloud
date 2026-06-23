@@ -1395,22 +1395,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (forceScanBtn) {
         forceScanBtn.addEventListener('click', async () => {
+            console.log("Initiate scan clicked!");
             try {
                 const originalText = forceScanBtn.innerHTML;
                 forceScanBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> SCANNING...';
                 forceScanBtn.disabled = true;
                 
-                await apiFetch(`${API_BASE}/network/scan`, { method: 'POST' });
+                console.log("Sending POST request to /api/network/scan...");
+                const response = await apiFetch(`${API_BASE}/network/scan`, { method: 'POST' });
+                console.log("Scan initiated successfully", response);
                 
                 // Aggressive polling post-scan to catch async results
                 let pollCount = 0;
                 const fastPoll = setInterval(() => {
+                    console.log(`Polling fetchWatchdogStatus... (${pollCount + 1}/5)`);
                     fetchWatchdogStatus();
                     pollCount++;
                     if (pollCount >= 5) {
                         clearInterval(fastPoll);
                         forceScanBtn.innerHTML = originalText;
                         forceScanBtn.disabled = false;
+                        console.log("Finished fast polling after scan");
                     }
                 }, 2000);
             } catch (err) {
@@ -1418,6 +1423,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 forceScanBtn.disabled = false;
             }
         });
+    } else {
+        console.warn("force-scan-btn element not found in DOM!");
     }
 
     async function fetchWatchdogStatus() {

@@ -1,11 +1,49 @@
 const { exec } = require('child_process');
 const util = require('util');
+const os = require('os');
 const execPromise = util.promisify(exec);
+
+function getLocalSubnet() {
+    try {
+        const { execSync } = require('child_process');
+        const routes = execSync('ip route show').toString();
+        
+        // Find default interface
+        const defaultMatch = routes.match(/default via .*? dev (\S+)/);
+        if (defaultMatch) {
+            const defaultDev = defaultMatch[1];
+            // Find subnet for that device
+            const subnetRegex = new RegExp(`^([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+/[0-9]+)\\s+dev\\s+${defaultDev}\\s+proto\\s+kernel\\s+scope\\s+link`, 'm');
+            const subnetMatch = routes.match(subnetRegex);
+            if (subnetMatch) {
+                return subnetMatch[1];
+            }
+        }
+    } catch(e) {
+        console.error("Failed to parse ip route, using fallback:", e.message);
+    }
+
+    // Fallback
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                const ipParts = iface.address.split('.');
+                ipParts[3] = '0/24';
+                return ipParts.join('.');
+            }
+        }
+    }
+    return '192.168.1.0/24';
+}
 
 async function runPingScan() {
     try {
-        // Utilizing native nmap package
-        const { stdout } = await execPromise('nmap -sn 192.168.1.0/24');
+        const targetSubnet = process.env.SCAN_SUBNET || getLocalSubnet();
+        console.log(`Starting nmap scan on target subnet: ${targetSubnet}`);
+        
+        // Utilizing native nmap package dynamically
+        const { stdout } = await execPromise(`nmap -sn ${targetSubnet}`);
         const lines = stdout.split('\n');
         const devices = [];
         let currentIp = null;
