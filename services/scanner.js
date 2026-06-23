@@ -46,23 +46,28 @@ async function runPingScan() {
         const { stdout } = await execPromise(`nmap -sn ${targetSubnet}`);
         const lines = stdout.split('\n');
         const devices = [];
-        let currentIp = null;
+        let currentDevice = null;
 
         for (let line of lines) {
             const ipMatch = line.match(/Nmap scan report for (?:.*? \()?([\d.]+)\)?/);
-            if (ipMatch) currentIp = ipMatch[1];
+            if (ipMatch) {
+                if (currentDevice) devices.push(currentDevice);
+                currentDevice = {
+                    ip: ipMatch[1],
+                    mac: 'UNKNOWN',
+                    vendor: 'UNKNOWN',
+                    timestamp: new Date().toISOString()
+                };
+            }
             
             const macMatch = line.match(/MAC Address: ([0-9A-F:]+) \((.*?)\)/i);
-            if (macMatch && currentIp) {
-                devices.push({
-                    ip: currentIp,
-                    mac: macMatch[1].toUpperCase(),
-                    vendor: macMatch[2],
-                    timestamp: new Date().toISOString()
-                });
-                currentIp = null;
+            if (macMatch && currentDevice) {
+                currentDevice.mac = macMatch[1].toUpperCase();
+                currentDevice.vendor = macMatch[2];
             }
         }
+        if (currentDevice) devices.push(currentDevice);
+        
         return devices;
     } catch (err) {
         console.error("Ping scan error:", err);
