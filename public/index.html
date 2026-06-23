@@ -164,21 +164,26 @@
                 </div>
             </div>
 
-            <!-- Users Section -->
-            <div id="users-section" class="hidden">
+            <!-- Protocols Section -->
+            <div id="users-section" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1;">
                 <div class="section-header">
-                    <h2
-                        style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">
-                        AUTHORIZATION PROTOCOLS</h2>
-                    <button class="btn primary-btn" id="create-user-modal-btn"
-                        style="display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); padding: 0.5rem 1.25rem;">
-                        <i class="ph ph-user-plus" style="font-size: 1.1rem;"></i>
-                        <span>Create Account</span>
+                    <h2 style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">
+                        SECURITY PROTOCOLS
+                    </h2>
+                    <button class="btn primary-btn" id="force-scan-btn" style="border-radius: var(--radius-full);">
+                        <i class="ph ph-radar"></i> Initiate Scan
                     </button>
                 </div>
+                
+                <div class="hud-container" style="margin-bottom: 1rem; border-color: var(--danger-color);">
+                    <h3 style="font-family: 'Orbitron', sans-serif; color: var(--danger-color); letter-spacing: 2px;">THREAT ASSESSMENT</h3>
+                    <p id="threat-status-text" style="font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; margin-top: 0.5rem; text-transform: uppercase;">
+                        Awaiting scan data...
+                    </p>
+                </div>
 
-                <div class="users-grid" id="users-grid">
-                    <!-- Users injected here dynamically -->
+                <div class="network-grid" id="network-grid" style="flex-grow: 1; overflow-y: auto; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); padding-bottom: 2rem;">
+                    <!-- Network devices injected here -->
                 </div>
             </div>
 

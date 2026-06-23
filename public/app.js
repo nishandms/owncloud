@@ -1387,6 +1387,88 @@ document.addEventListener('DOMContentLoaded', () => {
     if (usersBtnBottom) usersBtnBottom.addEventListener('click', (e) => { e.preventDefault(); switchTab('users'); });
     if (aiBtnBottom) aiBtnBottom.addEventListener('click', (e) => { e.preventDefault(); switchTab('ai'); });
 
+    // === NETWORK WATCHDOG LOGIC ===
+    let watchdogInterval;
+    const forceScanBtn = document.getElementById('force-scan-btn');
+    const threatStatusText = document.getElementById('threat-status-text');
+    const networkGrid = document.getElementById('network-grid');
+
+    if (forceScanBtn) {
+        forceScanBtn.addEventListener('click', async () => {
+            try {
+                const originalText = forceScanBtn.innerHTML;
+                forceScanBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> SCANNING...';
+                forceScanBtn.disabled = true;
+                
+                await apiFetch(`${API_BASE}/network/scan`, { method: 'POST' });
+                
+                // Aggressive polling post-scan to catch async results
+                let pollCount = 0;
+                const fastPoll = setInterval(() => {
+                    fetchWatchdogStatus();
+                    pollCount++;
+                    if (pollCount >= 5) {
+                        clearInterval(fastPoll);
+                        forceScanBtn.innerHTML = originalText;
+                        forceScanBtn.disabled = false;
+                    }
+                }, 2000);
+            } catch (err) {
+                console.error('Scan initiation failed:', err);
+                forceScanBtn.disabled = false;
+            }
+        });
+    }
+
+    async function fetchWatchdogStatus() {
+        if (!authToken) return;
+        try {
+            const res = await apiFetch(`${API_BASE}/watchdog/status`);
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            if (threatStatusText && data.assessment) {
+                let badgeClass = 'status-secure';
+                if (data.assessment.status === 'WARNING') badgeClass = 'status-warning';
+                if (data.assessment.status === 'CRITICAL') badgeClass = 'status-critical';
+                
+                threatStatusText.innerHTML = `<span class="status-badge ${badgeClass}">${data.assessment.status || 'UNKNOWN'}</span> 
+                                              <span style="color: var(--text-primary); margin-left: 0.5rem;">${data.assessment.message || 'No assessment available.'}</span>`;
+            }
+
+            if (networkGrid && data.logs) {
+                networkGrid.innerHTML = data.logs.map(device => `
+                    <div class="device-card">
+                        <div class="device-header">
+                            <i class="ph ph-desktop" style="font-size: 1.5rem; color: var(--accent-color);"></i>
+                            <span class="device-ip">${device.ip}</span>
+                        </div>
+                        <div class="device-details">
+                            <strong>MAC:</strong> ${device.mac}<br>
+                            <strong>VENDOR:</strong> ${device.vendor || 'UNKNOWN'}<br>
+                            <strong>LAST SEEN:</strong> ${new Date(device.timestamp).toLocaleTimeString()}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            console.error('Failed to fetch watchdog status:', err);
+        }
+    }
+
+    // Wrap the existing switchTab function to handle polling hooks
+    const originalSwitchTab = switchTab;
+    switchTab = function(tab) {
+        originalSwitchTab(tab);
+        if (tab === 'users') { // 'users' corresponds to the Protocols tab
+            fetchWatchdogStatus();
+            if (watchdogInterval) clearInterval(watchdogInterval);
+            watchdogInterval = setInterval(fetchWatchdogStatus, 5000);
+        } else {
+            if (watchdogInterval) clearInterval(watchdogInterval);
+        }
+    };
+
     // AI Chat Logic
     const chatInput = document.getElementById('chat-input');
     const chatSendBtn = document.getElementById('chat-send-btn');
