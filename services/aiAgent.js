@@ -28,6 +28,8 @@ Respond with a strict JSON format containing a "status" (WARNING or CRITICAL) an
         
         try {
             const parsedUrl = new URL(aiUrl);
+            parsedUrl.pathname = '/api/generate'; // Force the /generate endpoint for this payload format
+            
             const req = http.request({
                 hostname: parsedUrl.hostname,
                 port: parsedUrl.port,
@@ -42,19 +44,34 @@ Respond with a strict JSON format containing a "status" (WARNING or CRITICAL) an
                 res.on('data', chunk => data += chunk);
                 res.on('end', () => {
                     try {
+                        // Handle non-200 responses like HTML 404 pages
+                        if (data.trim().startsWith('<')) throw new Error("Received HTML instead of JSON");
+                        
                         const responseObj = JSON.parse(data);
-                        resolve(JSON.parse(responseObj.response));
+                        if (responseObj.error) throw new Error(responseObj.error);
+
+                        let aiText = responseObj.response || "{}";
+                        
+                        // Strip markdown formatting if the model wrapped it (e.g. ```json ... ```)
+                        aiText = aiText.replace(/```json/ig, '').replace(/```/g, '').trim();
+                        
+                        resolve(JSON.parse(aiText));
                     } catch (e) {
-                        resolve({ status: "UNKNOWN", message: "Failed to parse AI response." });
+                        console.error("AI parse error/offline:", e.message);
+                        resolve({ status: "WARNING", message: `AI offline. Procedural scan flagged ${unknownDevices.length} unrecognized devices requiring manual review.` });
                     }
                 });
             });
 
-            req.on('error', () => resolve({ status: "ERROR", message: "AI backend unreachable." }));
+            req.on('error', (e) => {
+                console.error("AI Connection Error:", e.message);
+                resolve({ status: "WARNING", message: `AI unreachable. Procedural scan flagged ${unknownDevices.length} unrecognized devices requiring manual review.` });
+            });
+            
             req.write(payload);
             req.end();
         } catch (err) {
-            resolve({ status: "ERROR", message: "Invalid AI URL." });
+            resolve({ status: "ERROR", message: "Invalid AI Configuration." });
         }
     });
 }
