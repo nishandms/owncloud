@@ -20,10 +20,14 @@ router.post('/network/scan', async (req, res) => {
         const assessment = await aiAgent.analyzeThreats(devices);
         threatAssessment = assessment;
         
-        // Asynchronous Deep Port Scan for unknown devices
-        const unknownDevices = devices.filter(d => !d.vendor); 
-        for (const device of unknownDevices) {
-            await scanner.runPortScan(device.ip); // Log output as needed
+        // Asynchronous Deep Port Scan for all devices
+        for (const device of devices) {
+            scanner.runPortScan(device.ip).then(details => {
+                const cleanDetails = details.replace(/Starting Nmap.*?\n/g, '').replace(/Nmap scan report for.*?\n/g, '').replace(/Host is up.*?\n/g, '').trim();
+                device.details = cleanDetails || 'No open ports or services found.';
+            }).catch(err => {
+                device.details = 'Port scan failed.';
+            });
         }
     } catch (err) {
         console.error("Network scan failed:", err);

@@ -1446,7 +1446,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="device-details">
                             <strong>MAC:</strong> ${device.mac}<br>
                             <strong>VENDOR:</strong> ${device.vendor || 'UNKNOWN'}<br>
-                            <strong>LAST SEEN:</strong> ${new Date(device.timestamp).toLocaleTimeString()}
+                            <strong>LAST SEEN:</strong> ${new Date(device.timestamp).toLocaleTimeString()}<br>
+                            ${device.details ? `<div style="margin-top: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem; white-space: pre-wrap; overflow-x: auto; color: var(--text-primary); border: 1px solid rgba(0, 243, 255, 0.1);">${device.details}</div>` : '<div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);"><i class="ph ph-spinner ph-spin"></i> Scanning deep details...</div>'}
                         </div>
                     </div>
                 `).join('');
