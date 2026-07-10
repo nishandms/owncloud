@@ -56,6 +56,7 @@ async function runPingScan() {
                     ip: ipMatch[1],
                     mac: 'UNKNOWN',
                     vendor: 'UNKNOWN',
+                    os: 'Unknown',
                     timestamp: new Date().toISOString()
                 };
             }
@@ -70,17 +71,48 @@ async function runPingScan() {
         
         return devices;
     } catch (err) {
-        console.error("Ping scan error:", err);
+        console.error("Ping scan error (nmap might be missing):", err);
         return [];
     }
 }
 
 async function runPortScan(ip) {
     try {
-        const { stdout } = await execPromise(`nmap -sV -F ${ip}`);
-        return stdout;
+        let stdout = '';
+        try {
+            // First try with OS fingerprinting (-O) which requires root/admin
+            const res = await execPromise(`nmap -O -sV -F ${ip}`);
+            stdout = res.stdout;
+        } catch (e) {
+            // Fallback to version detection only if -O fails due to privileges
+            const res = await execPromise(`nmap -sV -F ${ip}`);
+            stdout = res.stdout;
+        }
+        
+        let os = 'Unknown';
+        
+        // Try to parse OS from nmap output
+        const osDetailsMatch = stdout.match(/OS details: (.*?)\n/);
+        const serviceOsMatch = stdout.match(/Service Info:.*?OS: (.*?)[;\n]/);
+        const guessOsMatch = stdout.match(/Aggressive OS guesses: (.*?)\n/);
+        
+        if (osDetailsMatch) {
+            os = osDetailsMatch[1].trim();
+        } else if (guessOsMatch) {
+            // Usually comma separated list of guesses, take the first one
+            os = guessOsMatch[1].split(',')[0].trim();
+        } else if (serviceOsMatch) {
+            os = serviceOsMatch[1].trim();
+        }
+        
+        const cleanDetails = stdout.replace(/Starting Nmap.*?\n/g, '').replace(/Nmap scan report for.*?\n/g, '').replace(/Host is up.*?\n/g, '').trim();
+
+        return {
+            details: cleanDetails || 'No open ports or services found.',
+            os: os
+        };
     } catch (err) {
-        return "Port scan failed";
+        return { details: "Port scan failed", os: "Unknown" };
     }
 }
 

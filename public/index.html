@@ -13,38 +13,18 @@
     <link rel="apple-touch-icon" href="icon.svg">
 
     <link rel="stylesheet" href="style.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 
 <body>
 
-    <!-- Background Arc Reactor -->
-    <div class="bg-arc-reactor-container">
-        <div class="arc-reactor">
-            <div class="reactor-ring outer-ring"></div>
-            <div class="reactor-ring middle-ring"></div>
-            <div class="reactor-core">
-                <div class="core-glow"></div>
-            </div>
-        </div>
-    </div>
-
     <!-- Login Screen -->
     <div id="login-screen" class="login-overlay">
         <div class="login-box">
             <div class="login-header">
-                <div class="arc-core-login">
-                    <div class="arc-ring"></div>
-                    <div class="arc-center"></div>
-                </div>
-                <h2
-                    style="font-family: 'Orbitron', sans-serif; letter-spacing: 2px; color: var(--accent-color); text-shadow: 0 0 10px var(--accent-color);">
-                    J.A.R.V.I.S.</h2>
-                <p style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 1px;">Awaiting
-                    Authorization Sequence...</p>
+                <h2>Welcome Back</h2>
+                <p>Please log in to your account</p>
             </div>
             <form id="login-form">
                 <input type="text" id="login-username" placeholder="Username" required autocomplete="username"
@@ -62,8 +42,8 @@
 
     <aside class="sidebar hidden" id="sidebar">
         <div class="sidebar-logo">
-            <i class="ph ph-cpu"></i>
-            <h2 style="font-family: 'Orbitron', sans-serif;">J.A.R.V.I.S.</h2>
+            <i class="ph ph-hard-drives"></i>
+            <h2>Cloud Storage</h2>
         </div>
         <nav class="sidebar-nav">
             <a href="#" id="sidebar-cloud-btn" class="active"><i class="ph ph-hard-drives"></i> Main Core</a>
@@ -77,12 +57,11 @@
     <div class="app-wrapper hidden" id="app-wrapper">
         <!-- Header -->
         <header class="app-header">
-            <h1 class="header-title" id="current-path-display"
-                style="font-family: 'Orbitron', sans-serif; letter-spacing: 1px;">SYSTEM CORE</h1>
+            <h1 class="header-title" id="current-path-display">Files</h1>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button class="btn secondary-btn" id="header-network-toggle"
-                    style="padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.25rem; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;">
-                    <i class="ph ph-wifi-high"></i> <span id="header-network-text">STARK GLOBAL</span>
+                    style="padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-sm); display: flex; align-items: center; gap: 0.25rem;">
+                    <i class="ph ph-wifi-high"></i> <span id="header-network-text">Connected</span>
                 </button>
                 <button class="icon-btn action-btn hidden" id="header-theme-toggle" aria-label="Toggle Theme">
                     <i class="ph ph-moon"></i>
@@ -105,9 +84,7 @@
 
                 <!-- Storage Widget -->
                 <div class="section-header">
-                    <h2
-                        style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">
-                        DATA MATRIX</h2>
+                    <h2>Storage</h2>
                     <div style="display: flex; gap: 0.5rem;">
                         <button class="icon-btn action-btn" id="upload-btn" aria-label="Upload"><i
                                 class="ph ph-upload-simple"></i></button>
@@ -120,11 +97,8 @@
 
                 <div class="storage-widget hud-container">
                     <div class="storage-info" style="flex-grow: 1;">
-                        <h3
-                            style="font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 2px;">
-                            Core Capacity</h3>
-                        <p id="storage-text" style="font-family: 'Orbitron', monospace; color: var(--accent-color);">
-                            Used 5.0 GB / 10.0 GB Total (50%)</p>
+                        <h3>Capacity</h3>
+                        <p id="storage-text">Used 5.0 GB / 10.0 GB Total (50%)</p>
                         <p id="network-text"
                             style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
                             <i class="ph ph-arrow-down" style="color: var(--primary-color);"></i> <span id="rx-speed">0
@@ -135,22 +109,12 @@
                         </p>
                     </div>
 
-                    <div class="arc-reactor-container">
-                        <div class="arc-reactor">
-                            <div class="reactor-ring outer-ring"></div>
-                            <div class="reactor-ring middle-ring"></div>
-                            <div class="reactor-core">
-                                <div class="core-glow"></div>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
 
                 <!-- Files Grid -->
                 <div class="section-header">
-                    <h2
-                        style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">
-                        RECENT NODES</h2>
+                    <h2>Recent Files</h2>
                     <button class="icon-btn action-btn hidden" id="back-btn"><i class="ph ph-caret-left"></i>
                         Back</button>
                 </div>
@@ -167,23 +131,100 @@
             <!-- Protocols Section -->
             <div id="users-section" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1;">
                 <div class="section-header">
-                    <h2 style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">
-                        SECURITY PROTOCOLS
-                    </h2>
-                    <button class="btn primary-btn" id="force-scan-btn" style="border-radius: var(--radius-full);">
-                        <i class="ph ph-radar"></i> Initiate Scan
-                    </button>
+                    <h2>Admin Command Center</h2>
+                    <div style="display: flex; gap: 0.5rem; background: var(--surface-color); padding: 0.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); flex-wrap: wrap;">
+                        <button class="btn secondary-btn" id="tab-dashboard" style="border: none; border-radius: var(--radius-sm); background: var(--accent-light); color: var(--accent-color);">Dashboard</button>
+                        <button class="btn secondary-btn" id="tab-users" style="border: none; border-radius: var(--radius-sm); background: transparent;">Users</button>
+                        <button class="btn secondary-btn" id="tab-firewall" style="border: none; border-radius: var(--radius-sm); background: transparent;">Firewall</button>
+                    </div>
                 </div>
                 
-                <div class="hud-container" style="margin-bottom: 1rem; border-color: var(--danger-color);">
-                    <h3 style="font-family: 'Orbitron', sans-serif; color: var(--danger-color); letter-spacing: 2px;">THREAT ASSESSMENT</h3>
-                    <p id="threat-status-text" style="font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; margin-top: 0.5rem; text-transform: uppercase;">
-                        Awaiting scan data...
-                    </p>
+                <!-- Dashboard View -->
+                <div id="view-dashboard" style="display: flex; flex-direction: column; flex-grow: 1; overflow-y: auto; padding-bottom: 2rem;">
+                    <div class="bento-grid">
+                        <!-- System Health Vitals -->
+                        <div class="bento-card" style="grid-column: span 12;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h3 style="font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-activity"></i> System Vitals</h3>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                                <div class="vital-stat">
+                                    <span class="vital-label">CPU Load (1m)</span>
+                                    <span class="vital-value" id="health-cpu">--</span>
+                                </div>
+                                <div class="vital-stat">
+                                    <span class="vital-label">Memory Used</span>
+                                    <span class="vital-value" id="health-ram">--%</span>
+                                </div>
+                                <div class="vital-stat">
+                                    <span class="vital-label">Uptime</span>
+                                    <span class="vital-value" id="health-uptime">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Threat Assessment -->
+                        <div class="bento-card" style="grid-column: span 4; border-left: 3px solid var(--danger-color); display: flex; flex-direction: column;">
+                            <h3 style="color: var(--danger-color); font-weight: 600; font-size: 0.9rem;">Threat Assessment</h3>
+                            <p id="threat-status-text" style="font-size: 1.1rem; margin-top: 0.5rem; font-weight: 500; flex-grow: 1;">
+                                Awaiting scan data...
+                            </p>
+                            <button class="btn primary-btn" id="force-scan-btn" style="width: 100%; margin-top: 1rem; justify-content: center;">
+                                <i class="ph ph-radar"></i> Run Scanner
+                            </button>
+                        </div>
+                        
+                        <!-- Activity Stream -->
+                        <div class="bento-card" style="grid-column: span 8; max-height: 200px; display: flex; flex-direction: column;">
+                            <h3 style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">Live Activity Log</h3>
+                            <div id="activity-stream" style="flex-grow: 1; overflow-y: auto; font-family: monospace; font-size: 0.85rem; background: rgba(0,0,0,0.1); padding: 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                                <div style="color: var(--text-secondary);">Waiting for events...</div>
+                            </div>
+                        </div>
+
+                        <!-- Network Grid -->
+                        <div class="bento-card" style="grid-column: span 12;">
+                            <h3 style="font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;"><i class="ph ph-devices"></i> Connected Devices</h3>
+                            <div class="network-grid" id="network-grid">
+                                <!-- Network devices injected here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="network-grid" id="network-grid" style="flex-grow: 1; overflow-y: auto; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); padding-bottom: 2rem;">
-                    <!-- Network devices injected here -->
+                <!-- User Management View -->
+                <div id="view-users" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1;">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                        <button class="btn primary-btn" id="create-user-modal-btn">
+                            <i class="ph ph-user-plus"></i> Create User
+                        </button>
+                    </div>
+                    <div class="users-grid" id="users-grid" style="flex-grow: 1; overflow-y: auto; padding-bottom: 2rem;">
+                        <!-- Users injected here -->
+                    </div>
+                </div>
+
+                <!-- Firewall View -->
+                <div id="view-firewall" class="hidden" style="display: flex; flex-direction: column; flex-grow: 1;">
+                    <div class="bento-card" style="flex-grow: 1; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-shield-warning"></i> Access Control (Blacklist)</h3>
+                            <button class="btn secondary-btn" id="refresh-firewall-btn"><i class="ph ph-arrows-clockwise"></i> Refresh</button>
+                        </div>
+                        <div style="flex-grow: 1; overflow-y: auto; padding-bottom: 2rem;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left;" id="firewall-table">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem;">
+                                        <th style="padding: 0.75rem;">IP Address</th>
+                                        <th style="padding: 0.75rem; text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="firewall-list">
+                                    <!-- Blocked IPs injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -191,9 +232,7 @@
             <div id="ai-section" class="hidden"
                 style="display: flex; flex-direction: column; flex-grow: 1; min-height: 0;">
                 <div class="section-header">
-                    <h2
-                        style="font-family: 'Orbitron', sans-serif; color: var(--accent-color); text-shadow: 0 0 5px var(--accent-color);">
-                        COMMAND CENTER</h2>
+                    <h2>AI Assistant</h2>
                 </div>
 
                 <div class="chat-container hud-container"
@@ -202,8 +241,7 @@
                         style="flex-grow: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
                         <div class="message ai-message">
                             <div class="message-avatar"><i class="ph ph-robot"></i></div>
-                            <div class="message-content">J.A.R.V.I.S. online. Systems initialized. How may I assist you
-                                today?</div>
+                            <div class="message-content">Hello! How may I assist you today?</div>
                         </div>
                     </div>
 
@@ -277,6 +315,25 @@
 
     <!-- Hidden Inputs/Modals -->
     <input type="file" id="file-input" multiple hidden>
+
+    <!-- Device Details Modal -->
+    <div id="device-modal" class="modal-overlay hidden" style="z-index: 2500;">
+        <div class="modal" style="width: 600px; max-width: 95vw;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">Device Details</h2>
+                <span id="device-modal-ip" style="font-family: monospace; background: var(--surface-hover); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); font-weight: 600;"></span>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Port Scan Results</h3>
+                <pre id="device-modal-details" style="background: var(--surface-active); padding: 1rem; border-radius: var(--radius-md); font-family: monospace; font-size: 0.85rem; color: var(--text-primary); max-height: 300px; overflow-y: auto; white-space: pre-wrap; line-height: 1.4; border: 1px solid var(--border-color);"></pre>
+            </div>
+            
+            <div class="modal-actions" style="margin-top: 1.5rem;">
+                <button class="btn secondary-btn" id="device-modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Generic Modal Template (used for Rename/New Folder) -->
     <div id="generic-modal" class="modal-overlay hidden">

@@ -1444,20 +1444,48 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (networkGrid && data.logs) {
-                networkGrid.innerHTML = data.logs.map(device => `
-                    <div class="device-card">
+                networkGrid.innerHTML = data.logs.map((device, index) => `
+                    <div class="device-card" style="cursor: pointer;" data-index="${index}">
                         <div class="device-header">
                             <i class="ph ph-desktop" style="font-size: 1.5rem; color: var(--accent-color);"></i>
                             <span class="device-ip">${device.ip}</span>
                         </div>
-                        <div class="device-details">
+                        <div class="device-details" style="font-size: 0.85rem; color: var(--text-secondary);">
                             <strong>MAC:</strong> ${device.mac}<br>
                             <strong>VENDOR:</strong> ${device.vendor || 'UNKNOWN'}<br>
+                            <strong>OS (Est.):</strong> ${device.os || 'Unknown'}<br>
                             <strong>LAST SEEN:</strong> ${new Date(device.timestamp).toLocaleTimeString()}<br>
-                            ${device.details ? `<div style="margin-top: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem; white-space: pre-wrap; overflow-x: auto; color: var(--text-primary); border: 1px solid rgba(0, 243, 255, 0.1);">${device.details}</div>` : '<div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);"><i class="ph ph-spinner ph-spin"></i> Scanning deep details...</div>'}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn secondary-btn view-details-btn" style="flex-grow: 1; padding: 0.4rem; font-size: 0.8rem;">Details</button>
+                            <button class="btn primary-btn block-device-btn" data-ip="${device.ip}" style="background: var(--danger-color); padding: 0.4rem; font-size: 0.8rem;">Block</button>
                         </div>
                     </div>
                 `).join('');
+
+                // Attach event listeners for Details and Block buttons
+                const cards = networkGrid.querySelectorAll('.device-card');
+                cards.forEach(card => {
+                    const idx = card.getAttribute('data-index');
+                    const device = data.logs[idx];
+                    
+                    const detailsBtn = card.querySelector('.view-details-btn');
+                    const blockBtn = card.querySelector('.block-device-btn');
+                    
+                    detailsBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        showDeviceDetailsModal(device);
+                    });
+                    
+                    blockBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        blockDevice(device.ip);
+                    });
+                    
+                    card.addEventListener('click', () => {
+                        showDeviceDetailsModal(device);
+                    });
+                });
             }
         } catch (err) {
             console.error('Failed to fetch watchdog status:', err);
@@ -1469,13 +1497,185 @@ document.addEventListener('DOMContentLoaded', () => {
     switchTab = function(tab) {
         originalSwitchTab(tab);
         if (tab === 'users') { // 'users' corresponds to the Protocols tab
-            fetchWatchdogStatus();
-            if (watchdogInterval) clearInterval(watchdogInterval);
-            watchdogInterval = setInterval(fetchWatchdogStatus, 5000);
+            // Ensure we start on the dashboard tab
+            document.getElementById('tab-dashboard')?.click();
         } else {
             if (watchdogInterval) clearInterval(watchdogInterval);
         }
     };
+
+    // Protocols UI Sub-Tabs
+    const tabDashboardBtn = document.getElementById('tab-dashboard');
+    const tabUsersBtn = document.getElementById('tab-users');
+    const tabFirewallBtn = document.getElementById('tab-firewall');
+    
+    const viewDashboard = document.getElementById('view-dashboard');
+    const viewUsers = document.getElementById('view-users');
+    const viewFirewall = document.getElementById('view-firewall');
+
+    function resetTabs() {
+        if(viewDashboard) viewDashboard.classList.add('hidden');
+        if(viewUsers) viewUsers.classList.add('hidden');
+        if(viewFirewall) viewFirewall.classList.add('hidden');
+        
+        [tabDashboardBtn, tabUsersBtn, tabFirewallBtn].forEach(btn => {
+            if(btn) {
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--text-primary)';
+            }
+        });
+        if (watchdogInterval) clearInterval(watchdogInterval);
+    }
+
+    if (tabDashboardBtn && tabUsersBtn && tabFirewallBtn) {
+        tabDashboardBtn.addEventListener('click', () => {
+            resetTabs();
+            viewDashboard.classList.remove('hidden');
+            tabDashboardBtn.style.background = 'var(--accent-light)';
+            tabDashboardBtn.style.color = 'var(--accent-color)';
+            
+            fetchWatchdogStatus();
+            fetchSystemHealth();
+            fetchActivityLogs();
+            watchdogInterval = setInterval(() => {
+                fetchWatchdogStatus();
+                fetchSystemHealth();
+                fetchActivityLogs();
+            }, 5000);
+        });
+
+        tabUsersBtn.addEventListener('click', () => {
+            resetTabs();
+            viewUsers.classList.remove('hidden');
+            tabUsersBtn.style.background = 'var(--accent-light)';
+            tabUsersBtn.style.color = 'var(--accent-color)';
+            fetchUsers();
+        });
+
+        tabFirewallBtn.addEventListener('click', () => {
+            resetTabs();
+            viewFirewall.classList.remove('hidden');
+            tabFirewallBtn.style.background = 'var(--accent-light)';
+            tabFirewallBtn.style.color = 'var(--accent-color)';
+            fetchFirewallList();
+        });
+    }
+
+    // --- Dashboard Specific Fetchers ---
+    async function fetchSystemHealth() {
+        try {
+            const res = await apiFetch('/api/system/health');
+            const data = await res.json();
+            document.getElementById('health-cpu').textContent = data.cpuLoad || '--';
+            document.getElementById('health-ram').textContent = (data.memUsedPercent || '--') + '%';
+            
+            // Format uptime
+            const u = data.uptime || 0;
+            const h = Math.floor(u / 3600);
+            const m = Math.floor((u % 3600) / 60);
+            document.getElementById('health-uptime').textContent = `${h}h ${m}m`;
+        } catch (e) {
+            console.error('Failed to fetch system health');
+        }
+    }
+
+    async function fetchActivityLogs() {
+        try {
+            const res = await apiFetch('/api/system/logs');
+            const data = await res.json();
+            const stream = document.getElementById('activity-stream');
+            if (data.logs && data.logs.length > 0) {
+                stream.innerHTML = data.logs.map(log => {
+                    const color = log.severity === 'warning' ? 'var(--danger-color)' : 'var(--text-primary)';
+                    const time = new Date(log.timestamp).toLocaleTimeString();
+                    return `<div style="margin-bottom: 0.25rem;"><span style="color: var(--text-secondary);">[${time}]</span> <span style="color: ${color};">${log.event}</span></div>`;
+                }).join('');
+            } else {
+                stream.innerHTML = '<div style="color: var(--text-secondary);">No events logged yet.</div>';
+            }
+        } catch (e) {
+            console.error('Failed to fetch logs');
+        }
+    }
+
+    // --- Firewall Logic ---
+    async function fetchFirewallList() {
+        try {
+            const res = await apiFetch('/api/firewall/blocks');
+            const data = await res.json();
+            const list = document.getElementById('firewall-list');
+            if (data.blocked && data.blocked.length > 0) {
+                list.innerHTML = data.blocked.map(ip => `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 0.75rem; font-family: monospace;">${ip}</td>
+                        <td style="padding: 0.75rem; text-align: right;">
+                            <button class="btn secondary-btn unblock-btn" data-ip="${ip}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Unblock</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                list.querySelectorAll('.unblock-btn').forEach(btn => {
+                    btn.addEventListener('click', () => unblockIP(btn.getAttribute('data-ip')));
+                });
+            } else {
+                list.innerHTML = `<tr><td colspan="2" style="padding: 1rem; text-align: center; color: var(--text-secondary);">No blocked IPs</td></tr>`;
+            }
+        } catch (e) {
+            console.error('Failed to fetch firewall list');
+        }
+    }
+
+    async function unblockIP(ip) {
+        if(!confirm(`Are you sure you want to unblock ${ip}?`)) return;
+        try {
+            await apiFetch('/api/firewall/unblock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip })
+            });
+            fetchFirewallList();
+        } catch (e) {
+            alert('Failed to unblock IP');
+        }
+    }
+
+    document.getElementById('refresh-firewall-btn')?.addEventListener('click', fetchFirewallList);
+
+    // Device Details Modal Logic
+    const deviceModal = document.getElementById('device-modal');
+    const deviceModalIp = document.getElementById('device-modal-ip');
+    const deviceModalDetails = document.getElementById('device-modal-details');
+    const deviceModalCloseBtn = document.getElementById('device-modal-close-btn');
+
+    function showDeviceDetailsModal(device) {
+        if (!deviceModal) return;
+        deviceModalIp.textContent = `${device.ip} - ${device.os || 'Unknown OS'}`;
+        deviceModalDetails.textContent = device.details || 'Scanning deep details...';
+        deviceModal.classList.remove('hidden');
+    }
+
+    if (deviceModalCloseBtn) {
+        deviceModalCloseBtn.addEventListener('click', () => {
+            deviceModal.classList.add('hidden');
+        });
+    }
+
+    // Block Device Logic
+    async function blockDevice(ip) {
+        openConfirmModal('Block Device', `Are you sure you want to block IP: ${ip} from accessing the application?`, async () => {
+            try {
+                await apiFetch('/api/firewall/block', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip })
+                });
+                openAlertModal('Device Blocked', `IP address ${ip} has been added to the internal blocklist.`);
+                fetchFirewallList(); // Refresh the firewall list if they go to that tab
+            } catch (err) {
+                openAlertModal("Error", "Failed to block device.");
+            }
+        });
+    }
 
     // AI Chat Logic
     const chatInput = document.getElementById('chat-input');

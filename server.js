@@ -35,15 +35,40 @@ const app = express();
 const PORT = 8443;
 
 // SSL Certificate Options
-const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'mynodeapp.local-key.pem')),
-  cert: fs.readFileSync(path.join(__dirname, 'mynodeapp.local.pem'))
-};
+let sslOptions = null;
+let useHttps = false;
+try {
+  sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'mynodeapp.local-key.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'mynodeapp.local.pem'))
+  };
+  useHttps = true;
+} catch (e) {
+  console.warn('⚠️ SSL Certificates not found. Falling back to HTTP (Not secure).');
+  console.warn('To use HTTPS, generate mynodeapp.local-key.pem and mynodeapp.local.pem in the root directory.');
+}
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Global Firewall & Activity Logger
+global.blockedIPs = new Set();
+global.activityLogs = [];
+global.logActivity = (event, severity = 'info') => {
+    global.activityLogs.unshift({ timestamp: new Date().toISOString(), event, severity });
+    if (global.activityLogs.length > 50) global.activityLogs.pop();
+};
+
+app.use((req, res, next) => {
+    let clientIp = req.ip || req.connection.remoteAddress;
+    if (clientIp && clientIp.includes('::ffff:')) clientIp = clientIp.split('::ffff:')[1];
+    if (global.blockedIPs.has(clientIp)) {
+        return res.status(403).send('Access Denied by Firewall.');
+    }
+    next();
+});
 
 const watchdogRoutes = require('./routes/api');
 app.use('/api', watchdogRoutes);
@@ -882,7 +907,13 @@ app.delete('/api/admin/users/:username', authenticateToken, authenticateAdmin, (
 });
 
 // Start server
-const server = https.createServer(sslOptions, app);
+let server;
+if (useHttps) {
+  server = https.createServer(sslOptions, app);
+} else {
+  const http = require('http');
+  server = http.createServer(app);
+}
 server.timeout = 0; // Disable timeout for large uploads
 server.keepAliveTimeout = 120000;
 
@@ -896,12 +927,13 @@ server.on('connection', (socket) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Cloud storage server running at https://0.0.0.0:${PORT}`);
+  const protocol = useHttps ? 'https' : 'http';
+  console.log(`Cloud storage server running at ${protocol}://0.0.0.0:${PORT}`);
   
   const bonjour = new Bonjour();
   bonjour.publish({ 
     name: 'My Node App', 
-    type: 'https', 
+    type: protocol, 
     port: PORT,
     host: 'mynodeapp.local' 
   });
