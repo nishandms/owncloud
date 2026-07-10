@@ -1574,6 +1574,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const h = Math.floor(u / 3600);
             const m = Math.floor((u % 3600) / 60);
             document.getElementById('health-uptime').textContent = `${h}h ${m}m`;
+            
+            const osEl = document.getElementById('health-os');
+            if (osEl) {
+                osEl.textContent = data.osType ? `${data.osType} ${data.osRelease}` : '--';
+                osEl.title = data.osPlatform ? `${data.osPlatform} - ${data.osRelease}` : '';
+            }
         } catch (e) {
             console.error('Failed to fetch system health');
         }

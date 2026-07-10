@@ -45,7 +45,10 @@ router.get('/system/health', (req, res) => {
     res.json({
         cpuLoad: load.toFixed(2),
         memUsedPercent: Math.round((usedMem / totalMem) * 100),
-        uptime: os.uptime()
+        uptime: os.uptime(),
+        osType: os.type(),
+        osRelease: os.release(),
+        osPlatform: os.platform()
     });
 });
 

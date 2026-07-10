@@ -144,7 +144,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                                 <h3 style="font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-activity"></i> System Vitals</h3>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
                                 <div class="vital-stat">
                                     <span class="vital-label">CPU Load (1m)</span>
                                     <span class="vital-value" id="health-cpu">--</span>
@@ -156,6 +156,10 @@
                                 <div class="vital-stat">
                                     <span class="vital-label">Uptime</span>
                                     <span class="vital-value" id="health-uptime">--</span>
+                                </div>
+                                <div class="vital-stat">
+                                    <span class="vital-label">OS Details</span>
+                                    <span class="vital-value" id="health-os" style="font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">--</span>
                                 </div>
                             </div>
                         </div>
